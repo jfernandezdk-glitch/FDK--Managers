@@ -22,6 +22,7 @@ jobs:
       - run: npm install
       - run: npm run prepareWeb
       - run: npx cap add android
+      - run: node native/android/install.mjs
       - run: npx cap sync android
       - run: bash gradlew assembleDebug
         working-directory: mobile/android
