@@ -1,0 +1,17 @@
+{
+  "name": "fdk-manager",
+  "version": "31.0.0",
+  "private": true,
+  "scripts": {
+    "prepareWeb": "node prepare-web.mjs",
+    "sync": "npm run prepareWeb && cap sync"
+  },
+  "dependencies": {
+    "@capacitor/core": "7.4.3",
+    "@capacitor/android": "7.4.3",
+    "@capacitor/ios": "7.4.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "7.4.3"
+  }
+}
