@@ -1,0 +1,17 @@
+{
+  "id": "./fdk-manager",
+  "name": "FDK Manager",
+  "short_name": "FDK Manager",
+  "start_url": "./panel-r31.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#14283e",
+  "theme_color": "#14283e",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
