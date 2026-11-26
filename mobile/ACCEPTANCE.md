@@ -16,3 +16,6 @@ Sin nómina, sin comprobantes de entrega obligatorios, sin rastreo fuera de jorn
 
 ## Prioridad acordada
 TAG automático queda para la última etapa; conservar peajes manuales y código existente. Priorizar navegación y estabilidad, GPS nativo y sincronización, jornadas y colaciones, agenda y rutas, combustible/gastos/reembolsos, facturación/cobranza, rentabilidad, mantenciones/vencimientos, informes Excel/PDF, cotizaciones/respaldos, notificaciones y pruebas integrales Android/iOS. No marcar entregado sin evidencia. Revisión 31.1: navegación atrás incorporada, compilación y prueba física pendientes.
+
+## Alcance GPS acordado 26/11/2026
+No se exige prueba de desconexión voluntaria de internet. Mantener cola persistente y sincronización automática tras pérdidas naturales de cobertura (túneles y zonas sin señal). Verificar ubicación en panel, pantalla bloqueada durante jornada, historial y kilómetros, y cese al cerrar jornada. Si no hay señal GPS, identificar discontinuidades sin inventar posiciones ni distancias. No marcar pruebas como aprobadas sin evidencia.
