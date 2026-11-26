@@ -34,28 +34,7 @@ function fuelOcrParse(raw){const rows=raw.normalize('NFD').replace(/[\u0300-\u03
 let fuelOcrGeneration=0;
 async function readFuelReceipt(file){const gen=++fuelOcrGeneration,status=el('fuelOcrStatus');status.textContent='';if(!file)return;if(file.size>10485760){status.textContent='Foto demasiado grande. Ingresa los datos manualmente.';return;}const before=[el('fuelLiters').value,el('fuelAmount').value];let worker;try{status.textContent='Leyendo boleta… Puedes completar los datos mientras tanto.';if(!window.Tesseract)await ocrScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');if(gen!==fuelOcrGeneration)return;worker=await window.Tesseract.createWorker('spa+eng',1);if(gen!==fuelOcrGeneration)return;const raw=(await worker.recognize(file)).data.text;if(gen!==fuelOcrGeneration||receiptFile!==file)return;const result=fuelOcrParse(raw);if(!result){status.textContent='No se pudieron verificar los datos. Ingresa litros y monto manualmente.';return;}for(const [i,id,value] of [[0,'fuelLiters',result.liters],[1,'fuelAmount',result.amount]])if(!before[i]&&el(id).value===before[i])el(id).value=String(value);status.textContent='Lectura lista. Revisa litros y monto antes de guardar.';}catch{if(gen===fuelOcrGeneration)status.textContent='Lectura no disponible. Puedes ingresar los datos manualmente.';}finally{if(worker)await worker.terminate().catch(()=>{});}}
 
-function previewReceipt(file){receiptFile=file;void readFuelReceipt(file);if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl=file?URL.createObjectURL(file):null;el('receiptPreview').hidden=!file;if(file)el('receiptPreview').src=previewUrl;else el('receiptPreview').removeAttribute('src');el('cameraRetake').hidden=!file;el('photoInfo').textContent=file?'Fotografía lista. Revisa que sea legible.':'Adjunta una foto legible de la boleta.';if(file)readFuelReceipt(file);else fuelOcrGeneration++;}
-
-function fuelReceiptValues(raw){const rows=raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().split(/\r?\n/);const hits=[];for(const row of rows){const m=row.match(/(?:GASOLINA(?:\s+(?:93|95|97))?|DIESEL|PETROLEO)\s+(\d{1,4}[.,]\d{1,3})\s*(?:LT|LITROS?|L)\.?\s+\$?\s*(\d{1,2}(?:[.,]\d{3})|\d{3,5})\s+\$?\s*(\d{1,3}(?:[., ]\d{3})+|\d{3,8})\s*$/);if(!m)continue;const liters=Number(m[1].replace(',','.')),price=Number(m[2].replace(/[.,]/g,'')),amount=Number(m[3].replace(/[., ]/g,''));if(liters>=.01&&liters<=2000&&price>=100&&price<=10000&&amount<=10000000&&Math.abs(liters*price-amount)<=Math.max(2,price*.0005+1))hits.push({liters:Math.round(liters*100)/100,amount});}return hits.length===1?hits[0]:null;}
-let fuelOcrGeneration=0;
-async function readFuelReceipt(file){
- const gen=++fuelOcrGeneration,status=el('photoInfo'),before=[el('fuelLiters').value,el('fuelAmount').value];let worker;
- const current=()=>gen===fuelOcrGeneration&&receiptFile===file;
- if(file.size>10485760)return;
- status.textContent='Leyendo boleta… Puedes completar los datos manualmente.';
- try{
- if(!window.Tesseract)await ocrScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
- if(!current())return;
- worker=await window.Tesseract.createWorker('spa+eng',1);
- if(!current())return;
- const result=fuelReceiptValues((await worker.recognize(file)).data.text);
- if(!current())return;
- if(!result){status.textContent='No se pudieron confirmar los datos. Ingresa litros y monto manualmente.';return;}
- for(const [i,id,value] of [[0,'fuelLiters',result.liters],[1,'fuelAmount',result.amount]])if(!before[i]&&!el(id).value)el(id).value=String(value);
- status.textContent='Lectura lista. Revisa litros y monto antes de guardar.';
- }catch(e){if(current())status.textContent='Lectura no disponible. Ingresa los datos manualmente.';}
- finally{if(worker)await worker.terminate().catch(()=>{});}
-}
+function previewReceipt(file){receiptFile=file;void readFuelReceipt(file);if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl=file?URL.createObjectURL(file):null;el('receiptPreview').hidden=!file;if(file)el('receiptPreview').src=previewUrl;else el('receiptPreview').removeAttribute('src');el('cameraRetake').hidden=!file;el('photoInfo').textContent=file?'Fotografía lista. Revisa que sea legible.':'Adjunta una foto legible de la boleta.';}
 
 async function openReceiptCamera(){stopReceiptCamera();const gen=cameraGeneration;try{if(!navigator.mediaDevices?.getUserMedia)throw Error('Cámara integrada no disponible');const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});if(gen!==cameraGeneration){stream.getTracks().forEach(t=>t.stop());return;}receiptStream=stream;el('cameraVideo').srcObject=stream;el('cameraPanel').hidden=false;await el('cameraVideo').play();}catch(e){if(gen!==cameraGeneration)return;stopReceiptCamera();el('photoInfo').textContent='No se pudo abrir la cámara integrada. Usa la cámara del teléfono o la galería.';el('fuelPhoto').click();}}
 el('cameraOpen').onclick=openReceiptCamera;el('cameraRetake').onclick=openReceiptCamera;el('cameraClose').onclick=stopReceiptCamera;
