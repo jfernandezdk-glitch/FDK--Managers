@@ -29,13 +29,20 @@ public class FdkLocationService extends Service implements LocationListener {
     JSONObject j=new JSONObject(raw);
     // Never reattribute queued positions to a different driver or vehicle.
     if(!st.equals(j.optString("staff_id"))||!v.equals(j.optString("vehicle_id"))||!sh.equals(j.optString("shift_id")))continue;
-    j.remove("accuracy");long ms=j.getLong("recorded_at_ms");j.remove("recorded_at_ms");
-    j.put("recorded_at",java.time.Instant.ofEpochMilli(ms).toString());
-    java.net.HttpURLConnection c=(java.net.HttpURLConnection)new java.net.URL("https://jwzgtzgmikkreecjuiey.supabase.co/rest/v1/gps_positions").openConnection();
+    long ms=j.getLong("recorded_at_ms");
+    JSONObject payload=new JSONObject();
+    payload.put("p_shift",sh);
+    payload.put("p_event",f.getName().substring(f.getName().length()-41,f.getName().length()-5));
+    payload.put("p_lat",j.getDouble("latitude"));payload.put("p_lon",j.getDouble("longitude"));
+    payload.put("p_speed",j.has("speed_kmh")?j.getDouble("speed_kmh"):JSONObject.NULL);
+    java.text.SimpleDateFormat fmt=new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",java.util.Locale.US);
+    fmt.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+    payload.put("p_recorded",fmt.format(new java.util.Date(ms)));
+    java.net.HttpURLConnection c=(java.net.HttpURLConnection)new java.net.URL("https://jwzgtzgmikkreecjuiey.supabase.co/rest/v1/rpc/receive_gps_point").openConnection();
     try{c.setConnectTimeout(10000);c.setReadTimeout(10000);c.setRequestMethod("POST");c.setDoOutput(true);
     c.setRequestProperty("apikey","sb_publishable_NS-C2C9bB934aGZICKWSog_woHtu-IM");
     c.setRequestProperty("Authorization","Bearer "+jwt);c.setRequestProperty("Content-Type","application/json");c.setRequestProperty("Prefer","return=minimal");
-    try(java.io.OutputStream out=c.getOutputStream()){out.write(j.toString().getBytes(StandardCharsets.UTF_8));}
+    try(java.io.OutputStream out=c.getOutputStream()){out.write(payload.toString().getBytes(StandardCharsets.UTF_8));}
     int status=c.getResponseCode();if(status>=200&&status<300)f.delete();else return;
     }finally{c.disconnect();}
    }catch(Exception e){return;}
