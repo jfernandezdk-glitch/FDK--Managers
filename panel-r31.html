@@ -184,10 +184,10 @@ commercialTab=function(k){const old=el('commercialMenu').querySelector('[aria-pr
 const fdkOriginalGuideTab=guideTab;
 guideTab=function(k){const old=el('guideCapture').hidden?'library':'new';fdkOriginalGuideTab(k);if(old!==k)fdkRemember(()=>guideTab(old));};
 window.fdkBack=function(system=false){
- if(!el('nav').hidden){el('nav').hidden=true;return false;}
- if(!el('cameraPanel').hidden){stopReceiptCamera();return false;}
- if(!el('assignGuidePanel').hidden){if(!el('agSave')?.disabled)el('agCancel')?.click();return false;}
- if(fdkBackStack.length){fdkRestoring=true;try{fdkBackStack.pop()();}finally{fdkRestoring=false;fdkBackRefresh();}return false;}
+ if(el('nav')&&!el('nav').hidden){el('nav').hidden=true;return false;}
+ if(el('cameraPanel')&&!el('cameraPanel').hidden){stopReceiptCamera();return false;}
+ if(el('assignGuidePanel')&&!el('assignGuidePanel').hidden){if(!el('agSave')?.disabled)el('agCancel')?.click();return false;}
+ if(fdkBackStack.length){fdkRestoring=true;try{fdkBackStack.pop()();}catch(e){fdkBackStack.length=0;console.warn('FDK navigation recovery',e);if(!el('dashboard').hidden)page('home');else if(!el('driverPortal').hidden)driverPage('shift');}finally{fdkRestoring=false;fdkBackRefresh();}return false;}
  if(!el('dashboard').hidden&&currentPage!=='home'){fdkRestoring=true;try{page('home');}finally{fdkRestoring=false;}return false;}
  if(!el('driverPortal').hidden&&fdkDriverPage!=='shift'){fdkRestoring=true;try{driverPage('shift');}finally{fdkRestoring=false;}return false;}
  return system&&confirm('¿Minimizar FDK Manager? Tu sesión y jornada no se cerrarán.');
