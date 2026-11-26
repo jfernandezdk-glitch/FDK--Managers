@@ -19,3 +19,6 @@ GPS avanzado, Traccar y TAG automático quedan aplazados hasta terminar los dem�
 
 ## Alcance GPS acordado 26/11/2026
 No se exige prueba de desconexión voluntaria de internet. Mantener cola persistente y sincronización automática tras pérdidas naturales de cobertura (túneles y zonas sin señal). Verificar ubicación en panel, pantalla bloqueada durante jornada, historial y kilómetros, y cese al cerrar jornada. Si no hay señal GPS, identificar discontinuidades sin inventar posiciones ni distancias. No marcar pruebas como aprobadas sin evidencia.
+
+## Evidencia de base de datos — 26/11/2026
+Verificación de catálogo PostgreSQL en Supabase existente: `expense_reimbursements` tiene PRIMARY KEY (`expense_id`), FK a `operating_expenses(id)` y CHECK (`amount_clp > 0`). La clave primaria impide dos registros para el mismo gasto incluso ante solicitudes concurrentes. RLS habilitada en las 22 tablas públicas consultadas; esto no acredita la corrección de las políticas. Pendiente prueba funcional de reintento, conciliación, autorización por rol y monto correcto. No se insertaron datos de prueba ni se modificó el esquema.
