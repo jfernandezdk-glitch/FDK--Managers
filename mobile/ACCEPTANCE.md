@@ -25,3 +25,9 @@ Verificación de catálogo PostgreSQL en Supabase existente: `expense_reimbursem
 
 ## Alcance de entrega actualizado
 Excluir control de horas trabajadas, descansos, comidas y nómina. Conservar inicio y cierre operativo, odómetros y GPS durante jornada. Completar módulos y comprobaciones técnicas antes de solicitar pruebas físicas de la APK. No confundir implementación con aceptación verificada.
+
+## Agenda y ORS — 26/11/2026
+- [ ] Verificar orden manual y notificaciones de cambios de agenda por rol.
+- [ ] Optimización ORS: vista previa, confirmación explícita, respeto de restricciones de camión y orden de retiro/entrega; conservar orden manual ante error.
+- [ ] Verificar conexión autenticada, cuotas de la cuenta Standard, atribución CC BY-SA 4.0 y condiciones de privacidad antes de transmitir ubicaciones reales. El proveedor confirma uso comercial Standard: https://ask.openrouteservice.org/t/free-plan-in-an-app-with-a-paid-tier-license-cc-by-sa-4-0-personal-data-and-attribution-questions/8079/ . El dominio anterior fue retirado el 24/11/2026; rutas vigentes: https://api.heigit.org/openrouteservice/v2/directions/driving-hgv y optimización https://api.heigit.org/vroom/v0 (https://ask.openrouteservice.org/t/deprecating-api-openrouteservice-org-in-favour-of-api-heigit-org/7912/). Función desplegada v1 solo admite test y exige JWT y rol propietario según código; no se verificó llamada real. Control experimental retirado del panel hasta validación. No exponer clave ni contratar servicios.
+- [ ] Compilar APK y completar comprobaciones técnicas antes de solicitar pruebas físicas integrales; no solicitar pruebas parciales.
