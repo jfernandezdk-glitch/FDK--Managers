@@ -5,8 +5,9 @@ const p=root+'AndroidManifest.xml';
 let s=await readFile(p,'utf8');
 s=s.replace('</manifest>', '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/><uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/><uses-permission android:name="android.permission.FOREGROUND_SERVICE"/><uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/><uses-permission android:name="android.permission.POST_NOTIFICATIONS"/></manifest>');
 s=s.replace('</application>','<service android:name=".FdkLocationService" android:exported="false" android:foregroundServiceType="location"/></application>');
+s=s.replace('<application','<application android:enableOnBackInvokedCallback="false"');
 await writeFile(p,s);
 
 const java=root+'java/cl/transportefdk/manager/';
 await copyFile('native/android/FdkGpsPlugin.java',java+'FdkGpsPlugin.java');
-await writeFile(java+'MainActivity.java', 'package cl.transportefdk.manager;\nimport android.os.Bundle;\nimport com.getcapacitor.BridgeActivity;\npublic class MainActivity extends BridgeActivity { @Override public void onCreate(Bundle b){registerPlugin(FdkGpsPlugin.class);super.onCreate(b);} }\n');
+await writeFile(java+'MainActivity.java', 'package cl.transportefdk.manager;\nimport android.os.Bundle;\nimport com.getcapacitor.BridgeActivity;\npublic class MainActivity extends BridgeActivity { @Override public void onCreate(Bundle b){registerPlugin(FdkGpsPlugin.class);super.onCreate(b);} @Override public void onBackPressed(){if(getBridge()==null||getBridge().getWebView()==null)return;getBridge().getWebView().evaluateJavascript("typeof window.fdkBack === \\\"function\\\" ? window.fdkBack(true) : false", result -> {if("true".equals(result))moveTaskToBack(true);});} }\n');
