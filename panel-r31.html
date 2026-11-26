@@ -159,6 +159,12 @@ let weeklyData=[];async function weeklyAll(table){let rows=[];for(let i=0;;i+=50
 el('weeklyPrint').onclick=()=>{if(!weeklyData.length)return;const w=window.open('','_blank');if(!w){msg('Permite ventanas emergentes para imprimir.');return;}const d=w.document;d.title='FDK · Informe del período';const style=d.createElement('style');style.textContent='body{font:12px system-ui;color:#14283e;margin:24px}h1{font-size:22px}table{border-collapse:collapse;width:100%;font-size:10px}td,th{border:1px solid #ccd5df;padding:5px;text-align:left;overflow-wrap:anywhere}th{background:#14283e;color:white}tr{break-inside:avoid}@media print{button{display:none}}';d.head.append(style);const h=d.createElement('h1');h.textContent='Transporte FDK · Informe del período';d.body.append(h);const p=d.createElement('p');p.textContent='Informe provisional. GPS y TAG pueden ser estimados; no constituye cierre contable definitivo.';d.body.append(p);const b=d.createElement('button');b.textContent='Imprimir / Guardar PDF';b.onclick=()=>w.print();d.body.append(b);const table=d.createElement('table');for(const [i,row] of weeklyData.entries()){const tr=d.createElement('tr');for(const value of row){const cell=d.createElement(i===1?'th':'td');cell.textContent=String(value??'');tr.append(cell);}table.append(tr);}d.body.append(table);};
 
 /* Navigation history shared by Android system back and visible back button. */
+db.auth.onAuthStateChange((event,session)=>{
+ if(event==='TOKEN_REFRESHED'&&session&&activeShift&&window.Capacitor?.Plugins?.FdkGps){
+  const shift=activeShift.id;
+  setTimeout(()=>{if(activeShift?.id===shift)startGPS();},0);
+ }
+});
 const fdkBackStack=[];
 let fdkDriverPage='shift',fdkRestoring=false;
 const fdkBackButton=document.createElement('button');
