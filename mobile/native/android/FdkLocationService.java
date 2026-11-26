@@ -26,7 +26,9 @@ public class FdkLocationService extends Service implements LocationListener {
    if(!f.getName().startsWith(sh+"-")||!sh.equals(shift)||!f.getName().endsWith(".json"))continue;
    try{
     String raw=new String(java.nio.file.Files.readAllBytes(f.toPath()),StandardCharsets.UTF_8);
-    JSONObject j=new JSONObject(raw);j.put("staff_id",st);j.put("vehicle_id",v);
+    JSONObject j=new JSONObject(raw);
+    // Never reattribute queued positions to a different driver or vehicle.
+    if(!st.equals(j.optString("staff_id"))||!v.equals(j.optString("vehicle_id"))||!sh.equals(j.optString("shift_id")))continue;
     j.remove("accuracy");long ms=j.getLong("recorded_at_ms");j.remove("recorded_at_ms");
     j.put("recorded_at",java.time.Instant.ofEpochMilli(ms).toString());
     java.net.HttpURLConnection c=(java.net.HttpURLConnection)new java.net.URL("https://jwzgtzgmikkreecjuiey.supabase.co/rest/v1/gps_positions").openConnection();
@@ -44,7 +46,7 @@ public class FdkLocationService extends Service implements LocationListener {
  @Override public int onStartCommand(Intent i,int flags,int id){
   if(i==null || "stop".equals(i.getAction())){stopSelf();return START_NOT_STICKY;}
   shift=i.getStringExtra("shift");token=i.getStringExtra("token");staff=i.getStringExtra("staff");vehicle=i.getStringExtra("vehicle");
-  if(shift==null || !shift.matches("[0-9a-fA-F-]{36}") || checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED){stopSelf();return START_NOT_STICKY;}
+  if(shift==null || token==null || staff==null || vehicle==null || !shift.matches("[0-9a-fA-F-]{36}") || checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED){stopSelf();return START_NOT_STICKY;}
   NotificationManager nm=getSystemService(NotificationManager.class);
   if(Build.VERSION.SDK_INT>=26)nm.createNotificationChannel(new NotificationChannel("fdk_gps","GPS durante jornada",NotificationManager.IMPORTANCE_LOW));
   Intent stop=new Intent(this,FdkLocationService.class).setAction("stop");
@@ -57,9 +59,9 @@ public class FdkLocationService extends Service implements LocationListener {
   return START_NOT_STICKY;
  }
  @Override public void onLocationChanged(Location p){
-  if(shift==null || p.getAccuracy()>35 || System.currentTimeMillis()-p.getTime()>30000)return;
+  if(shift==null || staff==null || vehicle==null || !p.hasAccuracy() || p.getAccuracy()>35 || System.currentTimeMillis()-p.getTime()>30000)return;
   long now=SystemClock.elapsedRealtime(); if(now-last<(p.hasSpeed()&&p.getSpeed()<0.83?60000:10000))return;
-  try{JSONObject j=new JSONObject();j.put("shift_id",shift);j.put("latitude",p.getLatitude());j.put("longitude",p.getLongitude());j.put("accuracy",p.getAccuracy());j.put("recorded_at_ms",p.getTime());if(p.hasSpeed())j.put("speed_kmh",p.getSpeed()*3.6);
+  try{JSONObject j=new JSONObject();j.put("shift_id",shift);j.put("staff_id",staff);j.put("vehicle_id",vehicle);j.put("latitude",p.getLatitude());j.put("longitude",p.getLongitude());j.put("accuracy",p.getAccuracy());j.put("recorded_at_ms",p.getTime());if(p.hasSpeed())j.put("speed_kmh",p.getSpeed()*3.6);
    java.io.File dir=new java.io.File(getFilesDir(),"gps-pending");dir.mkdirs();java.io.File dest=new java.io.File(dir,shift+"-"+p.getTime()+"-"+java.util.UUID.randomUUID()+".json");java.io.File tmp=new java.io.File(dir,dest.getName()+".tmp");try(FileOutputStream f=new FileOutputStream(tmp)){f.write(j.toString().getBytes(StandardCharsets.UTF_8));f.getFD().sync();}if(!tmp.renameTo(dest))throw new java.io.IOException("GPS queue commit failed");last=now;
   }catch(Exception e){android.util.Log.e("FDK","GPS local write failed",e);stopSelf();}
  }
