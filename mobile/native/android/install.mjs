@@ -11,3 +11,11 @@ await writeFile(p,s);
 const java=root+'java/cl/transportefdk/manager/';
 await copyFile('native/android/FdkGpsPlugin.java',java+'FdkGpsPlugin.java');
 await writeFile(java+'MainActivity.java', 'package cl.transportefdk.manager;\nimport android.os.Bundle;\nimport com.getcapacitor.BridgeActivity;\npublic class MainActivity extends BridgeActivity { @Override public void onCreate(Bundle b){registerPlugin(FdkGpsPlugin.class);super.onCreate(b);} @Override public void onBackPressed(){if(getBridge()==null||getBridge().getWebView()==null)return;getBridge().getWebView().evaluateJavascript("typeof window.fdkBack === \\\"function\\\" ? window.fdkBack(true) : false", result -> {if("true".equals(result))moveTaskToBack(true);});} }\n');
+
+// Traccar SDK pinned for compile compatibility; activation requires secure receiver.
+if(process.env.FDK_TRACCAR_EXPERIMENT==='1'){
+ const gradle='android/app/build.gradle';
+ let g=await readFile(gradle,'utf8');
+ if(!g.includes('org.traccar:traccar-client-sdk'))g+='\ndependencies { implementation "org.traccar:traccar-client-sdk:1.1.4" }\n';
+ await writeFile(gradle,g);
+}
