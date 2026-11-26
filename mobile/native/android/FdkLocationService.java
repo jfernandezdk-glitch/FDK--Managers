@@ -23,7 +23,7 @@ public class FdkLocationService extends Service implements LocationListener {
   java.io.File[] files=dir.listFiles();if(files==null)return;
   java.util.Arrays.sort(files);
   for(java.io.File f:files){
-   if(!f.getName().startsWith(sh+"-")||!sh.equals(shift))continue;
+   if(!f.getName().startsWith(sh+"-")||!sh.equals(shift)||!f.getName().endsWith(".json"))continue;
    try{
     String raw=new String(java.nio.file.Files.readAllBytes(f.toPath()),StandardCharsets.UTF_8);
     JSONObject j=new JSONObject(raw);j.put("staff_id",st);j.put("vehicle_id",v);
@@ -60,7 +60,7 @@ public class FdkLocationService extends Service implements LocationListener {
   if(shift==null || p.getAccuracy()>35 || System.currentTimeMillis()-p.getTime()>30000)return;
   long now=SystemClock.elapsedRealtime(); if(now-last<(p.hasSpeed()&&p.getSpeed()<0.83?60000:10000))return;
   try{JSONObject j=new JSONObject();j.put("shift_id",shift);j.put("latitude",p.getLatitude());j.put("longitude",p.getLongitude());j.put("accuracy",p.getAccuracy());j.put("recorded_at_ms",p.getTime());if(p.hasSpeed())j.put("speed_kmh",p.getSpeed()*3.6);
-   java.io.File dir=new java.io.File(getFilesDir(),"gps-pending");dir.mkdirs();java.io.File dest=new java.io.File(dir,shift+"-"+p.getTime()+"-"+java.util.UUID.randomUUID()+".json");try(FileOutputStream f=new FileOutputStream(dest)){f.write(j.toString().getBytes(StandardCharsets.UTF_8));f.getFD().sync();}last=now;
+   java.io.File dir=new java.io.File(getFilesDir(),"gps-pending");dir.mkdirs();java.io.File dest=new java.io.File(dir,shift+"-"+p.getTime()+"-"+java.util.UUID.randomUUID()+".json");java.io.File tmp=new java.io.File(dir,dest.getName()+".tmp");try(FileOutputStream f=new FileOutputStream(tmp)){f.write(j.toString().getBytes(StandardCharsets.UTF_8));f.getFD().sync();}if(!tmp.renameTo(dest))throw new java.io.IOException("GPS queue commit failed");last=now;
   }catch(Exception e){android.util.Log.e("FDK","GPS local write failed",e);stopSelf();}
  }
  @Override public void onDestroy(){shift=null;uploader.shutdownNow();if(manager!=null)manager.removeUpdates(this);stopForeground(STOP_FOREGROUND_REMOVE);super.onDestroy();}
