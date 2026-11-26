@@ -1,6 +1,13 @@
 name: FDK Android test build
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - 'panel-r31.html'
+      - 'manifest-r31.webmanifest'
+      - '.github/workflows/fdk-android.yml'
 permissions:
   contents: read
 jobs:
