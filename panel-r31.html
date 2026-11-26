@@ -8,7 +8,7 @@ async function dashboard(){const results=await Promise.all([db.from('vehicles').
 el('refresh').onclick=dashboard;el('vehicle').onsubmit=async e=>{e.preventDefault();const payload={name:el('truckname').value.trim(),license_plate:el('plate').value.trim().toUpperCase(),odometer_km:Number(el('odo').value)};const id=e.target.dataset.edit;const {error}=await (id?db.from('vehicles').update(payload).eq('id',id):db.from('vehicles').insert(payload));if(error){msg('No se pudo agregar el camión: '+error.message);return;}e.target.reset();delete e.target.dataset.edit;e.target.querySelector('button').textContent='Agregar camión';msg('Camión guardado.');await dashboard();};
 function options(id,rows,label,empty){const select=el(id),old=select.value;select.replaceChildren(new Option(empty,''));for(const x of rows)select.add(new Option(label(x),x.id));if([...select.options].some(x=>x.value===old))select.value=old;}
 function lines(id,rows,format){el(id).replaceChildren();if(!rows.length)el(id).textContent='Sin registros';for(const x of rows){const p=document.createElement('p');p.textContent=format(x);el(id).append(p);}}
-async function operations(v,s){const trucks=v.filter(x=>x.active),drivers=s.filter(x=>x.active&&x.role==='driver');for(const id of ['driverTruck','serviceTruck'])options(id,trucks,x=>x.name+' · '+x.license_plate,'Seleccionar camión');options('serviceDriver',drivers,x=>x.full_name,'Seleccionar conductor');for(const x of s.filter(x=>x.role==='driver')){const b=document.createElement('button');b.textContent='Editar '+x.full_name;b.onclick=()=>{el('driverName').value=x.full_name;el('driverPhone').value=x.phone||'';el('driverTruck').value=x.assigned_vehicle_id||'';el('driverForm').dataset.edit=x.id;};el('team').append(b);}const [a,b]=await Promise.all([db.from('services').select('*').order('scheduled_at'),db.from('work_shifts').select('*').order('started_at',{ascending:false})]);if(a.error||b.error){msg('Error operativo: '+(a.error||b.error).message);return;}lines('orders',a.data,x=>x.title+' · '+x.origin+' → '+x.destination+' · '+new Date(x.scheduled_at).toLocaleString('es-CL')+' · '+(s.find(y=>y.id===x.staff_id)?.full_name||'Sin conductor')+' · '+(serviceNames[x.state]||x.state));shiftRows=b.data;shiftStaff=s;shiftVehicles=v;options('shiftDriver',s.filter(x=>x.role==='driver'),x=>x.full_name,'Todos los conductores');options('shiftTruck',v,x=>x.name,'Todos los camiones');renderShifts();}
+async function operations(v,s){const trucks=v.filter(x=>x.active),drivers=s.filter(x=>x.active&&x.role==='driver');for(const id of ['driverTruck','serviceTruck'])options(id,trucks,x=>x.name+' · '+x.license_plate,'Seleccionar camión');options('serviceDriver',drivers,x=>x.full_name,'Seleccionar conductor');for(const x of s.filter(x=>x.role==='driver')){const b=document.createElement('button');b.textContent='Editar '+x.full_name;b.onclick=()=>{el('driverName').value=x.full_name;el('driverPhone').value=x.phone||'';el('driverTruck').value=x.assigned_vehicle_id||'';el('driverForm').dataset.edit=x.id;};el('team').append(b);}const [a,b]=await Promise.all([db.from('services').select('*').order('scheduled_at'),db.from('work_shifts').select('*').order('started_at',{ascending:false})]);if(a.error||b.error){msg('Error operativo: '+(a.error||b.error).message);return;}agendaRows=a.data;agendaStaff=s;agendaVehicles=v;renderAgenda();shiftRows=b.data;shiftStaff=s;shiftVehicles=v;options('shiftDriver',s.filter(x=>x.role==='driver'),x=>x.full_name,'Todos los conductores');options('shiftTruck',v,x=>x.name,'Todos los camiones');renderShifts();}
 el('driverForm').onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector('button');b.disabled=true;try{const payload={full_name:el('driverName').value.trim(),phone:el('driverPhone').value.trim(),assigned_vehicle_id:el('driverTruck').value||null};const id=e.target.dataset.edit;const {error}=await(id?db.from('staff').update(payload).eq('id',id):db.from('staff').insert({...payload,role:'driver'}));if(error)throw error;e.target.reset();delete e.target.dataset.edit;await dashboard();msg('Conductor guardado.');}catch(e){msg(e.message);}finally{b.disabled=false;}};
 el('serviceForm').onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector('button');b.disabled=true;try{const {error}=await db.from('services').insert({title:el('serviceTitle').value.trim(),origin:el('origin').value.trim(),destination:el('destination').value.trim(),scheduled_at:new Date(el('scheduled').value).toISOString(),staff_id:el('serviceDriver').value,vehicle_id:el('serviceTruck').value,instructions:el('instructions').value,state:'assigned'});if(error)throw error;e.target.reset();await dashboard();msg('Orden guardada.');}catch(e){msg(e.message);}finally{b.disabled=false;}};
 let shiftRows=[],shiftStaff=[],shiftVehicles=[];
@@ -193,4 +193,37 @@ window.fdkBack=function(system=false){
  return system&&confirm('¿Minimizar FDK Manager? Tu sesión y jornada no se cerrarán.');
 };
 fdkBackButton.onclick=()=>window.fdkBack(false);
+
+let agendaRows=[],agendaStaff=[],agendaVehicles=[];
+const agendaFilters=document.createElement('div');
+agendaFilters.innerHTML='<label>Fecha <input id="agendaDay" type="date"></label><label>Camión <select id="agendaTruck"></select></label><button type="button" id="agendaAll">Ver todas las fechas</button>';
+el('orders').before(agendaFilters);
+el('agendaDay').value=chileDay(new Date());
+el('agendaDay').onchange=renderAgenda;el('agendaTruck').onchange=renderAgenda;
+el('agendaAll').onclick=()=>{el('agendaDay').value='';renderAgenda();};
+function renderAgenda(){
+ const truck=el('agendaTruck'),prev=truck.value;
+ options('agendaTruck',agendaVehicles,x=>x.name,'Todos los camiones');truck.value=prev;
+ const list=el('orders');list.replaceChildren();
+ const rows=agendaRows.filter(x=>(!el('agendaDay').value||chileDay(new Date(x.scheduled_at))===el('agendaDay').value)&&(!truck.value||x.vehicle_id===truck.value));
+ if(!rows.length)list.textContent='Sin servicios para esta selección.';
+ for(const x of rows){
+ const card=document.createElement('article');card.className='shiftcard';list.append(card);
+ shiftCard(card,x.title+' · '+(serviceNames[x.state]||x.state),[shiftDate(x.scheduled_at),x.origin+' → '+x.destination,agendaStaff.find(y=>y.id===x.staff_id)?.full_name||'Sin conductor',agendaVehicles.find(y=>y.id===x.vehicle_id)?.name||'Sin camión']);
+ if(!['planned','assigned'].includes(x.state))continue;
+ const b=document.createElement('button');b.type='button';b.textContent='Reprogramar / reasignar';card.append(b);
+ b.onclick=()=>{b.disabled=true;const form=document.createElement('form');card.append(form);
+ const date=document.createElement('input');date.type='datetime-local';date.required=true;
+ const dt=new Date(x.scheduled_at);date.value=new Date(dt.getTime()-dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
+ const driver=document.createElement('select'),vehicle=document.createElement('select');driver.required=vehicle.required=true;
+ for(const [select,items,label] of [[driver,agendaStaff.filter(y=>y.active&&y.role==='driver'),y=>y.full_name],[vehicle,agendaVehicles.filter(y=>y.active&&y.state!=='maintenance'&&y.state!=='retired'),y=>y.name]]){
+ const empty=new Option('Seleccionar','');select.add(empty);for(const y of items)select.add(new Option(label(y),y.id));}
+ driver.value=x.staff_id||'';vehicle.value=x.vehicle_id||'';
+ for(const [label,input] of [['Fecha y hora local del dispositivo',date],['Conductor',driver],['Camión',vehicle]]){const l=document.createElement('label');l.textContent=label;l.append(input);form.append(l);}
+ const save=document.createElement('button');save.textContent='Guardar planificación';const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Cancelar';cancel.onclick=()=>{form.remove();b.disabled=false;};form.append(save,cancel);
+ form.onsubmit=async e=>{e.preventDefault();save.disabled=cancel.disabled=true;try{const result=await db.from('services').update({scheduled_at:new Date(date.value).toISOString(),staff_id:driver.value,vehicle_id:vehicle.value}).eq('id',x.id).eq('state',x.state).eq('scheduled_at',x.scheduled_at).select('id').maybeSingle();if(result.error)throw result.error;if(!result.data)throw Error('El servicio cambió; actualiza la agenda.');await dashboard();msg('Planificación actualizada.');}catch(err){msg(err.message);save.disabled=cancel.disabled=false;}};
+ };
+ }
+}
+
 </script></html>
