@@ -226,4 +226,6 @@ function renderAgenda(){
  }
 }
 
+
+const orsTestButton=document.createElement('button');orsTestButton.type='button';orsTestButton.textContent='Comprobar conexión de rutas';orsTestButton.className='alt';const orsTestResult=document.createElement('p');el('orders').before(orsTestButton,orsTestResult);orsTestButton.onclick=async()=>{if(!tagOwner){orsTestResult.textContent='Solo propietario';return;}orsTestButton.disabled=true;orsTestResult.textContent='Comprobando…';try{const {data,error}=await db.functions.invoke('fdk-route-preview',{body:{action:'test'}});if(error)throw error;if(!data?.connected)throw Error('Respuesta no confirmada');orsTestResult.textContent='Conexión correcta · prueba camión: '+(data.distance_m/1000).toFixed(2)+' km · '+Math.round(data.duration_s/60)+' min';}catch(e){let detail='';try{const d=await e.context?.json();detail=d?.error|| (d?.providerStatus?'Proveedor HTTP '+d.providerStatus:'');}catch{}orsTestResult.textContent='Conexión no verificada: '+(detail||e.message);}finally{orsTestButton.disabled=false;}};
 </script></html>
