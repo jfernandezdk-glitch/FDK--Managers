@@ -14,7 +14,7 @@ public class FdkGpsPlugin extends Plugin {
  private void launch(PluginCall call){
   String shift=call.getString("shift");
   if(shift==null||!shift.matches("[0-9a-fA-F-]{36}")){call.reject("Jornada inválida");return;}
-  try{Intent i=new Intent(getContext(),FdkLocationService.class).putExtra("shift",shift);ContextCompat.startForegroundService(getContext(),i);call.resolve();}catch(Exception e){call.reject("No se pudo iniciar GPS",e);}
+  try{Intent i=new Intent(getContext(),FdkLocationService.class).putExtra("shift",shift).putExtra("token",call.getString("token")).putExtra("staff",call.getString("staff")).putExtra("vehicle",call.getString("vehicle"));ContextCompat.startForegroundService(getContext(),i);call.resolve();}catch(Exception e){call.reject("No se pudo iniciar GPS",e);}
  }
  @PluginMethod public void stop(PluginCall call){getContext().stopService(new Intent(getContext(),FdkLocationService.class));call.resolve();}
 }
