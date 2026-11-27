@@ -61,13 +61,13 @@ public class FdkLocationService extends Service implements LocationListener {
   Notification n=(Build.VERSION.SDK_INT>=26?new Notification.Builder(this,"fdk_gps"):new Notification.Builder(this)).setContentTitle("FDK Manager").setContentText("Ubicación activa durante jornada").setSmallIcon(android.R.drawable.ic_menu_mylocation).setOngoing(true).addAction(new Notification.Action.Builder(null,"Detener GPS",pi).build()).build();
   startForeground(310,n);
   manager=getSystemService(LocationManager.class);
-  try{manager.removeUpdates(this);manager.requestLocationUpdates(LocationManager.GPS_PROVIDER,10000,0,this,Looper.getMainLooper());}catch(Exception e){stopSelf();}
+  try{manager.removeUpdates(this);manager.requestLocationUpdates(LocationManager.GPS_PROVIDER,30000,0,this,Looper.getMainLooper());}catch(Exception e){stopSelf();}
   if(!scheduled){scheduled=true;uploader.scheduleWithFixedDelay(()->upload(),0,15,java.util.concurrent.TimeUnit.SECONDS);}
   return START_NOT_STICKY;
  }
  @Override public void onLocationChanged(Location p){
   if(shift==null || staff==null || vehicle==null || !p.hasAccuracy() || p.getAccuracy()>35 || System.currentTimeMillis()-p.getTime()>30000)return;
-  long now=SystemClock.elapsedRealtime(); if(now-last<(p.hasSpeed()&&p.getSpeed()<0.83?60000:10000))return;
+  long now=SystemClock.elapsedRealtime(); if(now-last<(p.hasSpeed()&&p.getSpeed()<0.83?60000:30000))return;
   try{JSONObject j=new JSONObject();j.put("shift_id",shift);j.put("staff_id",staff);j.put("vehicle_id",vehicle);j.put("latitude",p.getLatitude());j.put("longitude",p.getLongitude());j.put("accuracy",p.getAccuracy());j.put("recorded_at_ms",p.getTime());if(p.hasSpeed())j.put("speed_kmh",p.getSpeed()*3.6);
    java.io.File dir=new java.io.File(getFilesDir(),"gps-pending");dir.mkdirs();java.io.File dest=new java.io.File(dir,shift+"-"+p.getTime()+"-"+java.util.UUID.randomUUID()+".json");java.io.File tmp=new java.io.File(dir,dest.getName()+".tmp");try(FileOutputStream f=new FileOutputStream(tmp)){f.write(j.toString().getBytes(StandardCharsets.UTF_8));f.getFD().sync();}if(!tmp.renameTo(dest))throw new java.io.IOException("GPS queue commit failed");last=now;
   }catch(Exception e){android.util.Log.e("FDK","GPS local write failed",e);stopSelf();}
