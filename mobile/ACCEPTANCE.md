@@ -38,3 +38,11 @@ Ubicación actual durante jornada, contadores diarios/semanales/anuales, pantall
 ## Identidad visual e instalación — 27/11/2026
 - [ ] Usar exactamente el logo metálico Transportes FDK aprobado por el usuario (camión plateado, fondo azul, bordes cromados/naranjos), sin rediseñarlo. Sustituir iconos Android normales/adaptativos y pantalla de carga; conservar nombre FDK Manager. Verificar icono en launcher Samsung. Si el original no está disponible, solicitarlo; no sustituir por aproximación.
 - [ ] Investigar rechazo de instalación del APK debug #55 en Samsung; comprobar firma, versionCode y compatibilidad. Establecer firma persistente segura y versiones incrementales, sin publicar claves ni secretos. Verificar instalación limpia y actualización conservando datos. No afirmar causa confirmada sin diagnóstico.
+
+
+## TAG — alcance aprobado 2026-11-27
+- GPS intacto: 30 s en movimiento, 60 s detenido. Interpolación de cruces hasta 90 s y 2500 m, con velocidad coherente, sentido y trayectoria; hora interpolada. Detectar múltiples pórticos sin duplicar.
+- Túneles: reconstrucción por entradas, salidas y conexiones verificadas; no inventar recorridos ni tarifas. Pérdidas superiores a 90 s requieren evidencia de tramo.
+- Cruce dudoso o tarifa desconocida: una notificación persistente al propietario por candidato, sin recordatorios insistentes ni intervención del conductor. Permitir importe manual opcional asociado al mismo cruce, con auditoría, sin alterar tarifa oficial. Ignorar mantiene pendiente, no bloquea cierre semanal. Mostrar pendientes por separado, no como costo cero.
+- Distinguir estimado, manual y real; conciliación sin duplicar. Catálogo y tarifas oficiales verificadas, actualización bajo demanda del propietario, conservar última versión válida si falla. Sin servicios de pago.
+- Pruebas requeridas: cruces directos, inversos, múltiples, duplicados, rutas paralelas, túneles ambiguos, pérdida de señal, tarifa desconocida, notificación única, importe manual y permisos. GPS: pruebas de escritura obsoleta y cierre concurrente pendientes antes de producción.
