@@ -46,3 +46,11 @@ Ubicación actual durante jornada, contadores diarios/semanales/anuales, pantall
 - Cruce dudoso o tarifa desconocida: una notificación persistente al propietario por candidato, sin recordatorios insistentes ni intervención del conductor. Permitir importe manual opcional asociado al mismo cruce, con auditoría, sin alterar tarifa oficial. Ignorar mantiene pendiente, no bloquea cierre semanal. Mostrar pendientes por separado, no como costo cero.
 - Distinguir estimado, manual y real; conciliación sin duplicar. Catálogo y tarifas oficiales verificadas, actualización bajo demanda del propietario, conservar última versión válida si falla. Sin servicios de pago.
 - Pruebas requeridas: cruces directos, inversos, múltiples, duplicados, rutas paralelas, túneles ambiguos, pérdida de señal, tarifa desconocida, notificación única, importe manual y permisos. GPS: pruebas de escritura obsoleta y cierre concurrente pendientes antes de producción.
+
+
+## Actualización cartográfica — aprobada 2026-11-27
+- OpenStreetMap/Geofabrik Chile como fuente cartográfica, contrastada con MOP y concesionarias; atribución ODbL y cumplimiento de licencia.
+- Actualización automática cada seis meses y botón exclusivo del propietario «Actualizar cartografía ahora», independientes de la actualización de tarifas TAG bajo demanda.
+- Procesamiento externo al teléfono, extracción selectiva, comparación y validación antes de publicar catálogo versionado en Supabase. Nuevos pórticos y rutas ambiguas no se activan sin verificación suficiente.
+- Conservar versión anterior ante fallos, restauración, historial de cambios, fechas última/próxima actualización y notificación de resultado al propietario. No alterar cruces históricos ni requerir reinstalación APK. Sin servicios de pago sin autorización.
+- Implementación y pruebas pendientes; no confundir requisito aprobado con automatización operativa.
