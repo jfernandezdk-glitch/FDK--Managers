@@ -16,6 +16,15 @@ public class FdkLocationService extends Service implements LocationListener {
  private volatile String token,staff,vehicle;
  private final java.util.concurrent.ScheduledExecutorService uploader=java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
  private boolean scheduled=false;
+ private android.net.ConnectivityManager connectivity;
+ private android.net.ConnectivityManager.NetworkCallback networkCallback;
+ private void watchNetwork(){
+  if(networkCallback!=null)return;
+  connectivity=getSystemService(android.net.ConnectivityManager.class);
+  if(connectivity==null)return;
+  networkCallback=new android.net.ConnectivityManager.NetworkCallback(){@Override public void onAvailable(android.net.Network network){if(!uploader.isShutdown())try{uploader.execute(()->upload());}catch(java.util.concurrent.RejectedExecutionException ignored){}}};
+  try{connectivity.registerDefaultNetworkCallback(networkCallback);}catch(Exception e){networkCallback=null;}
+ }
  private void upload(){
   final String sh=shift, st=staff, v=vehicle;
   if(sh==null||st==null||v==null)return;
@@ -24,9 +33,10 @@ public class FdkLocationService extends Service implements LocationListener {
   if(!sh.equals(shift))return;
   java.io.File dir=new java.io.File(getFilesDir(),"gps-pending");
   java.io.File[] files=dir.listFiles();if(files==null)return;
-  java.util.Arrays.sort(files);
+  java.util.Arrays.sort(files,java.util.Comparator.comparingLong(f->{try{return Long.parseLong(f.getName().substring(37,50));}catch(Exception e){return Long.MAX_VALUE;}}));
   for(java.io.File f:files){
-   if(!sh.equals(shift)||!f.getName().endsWith(".json"))continue;
+   if(!sh.equals(shift)||Thread.currentThread().isInterrupted())return;
+   if(!f.getName().endsWith(".json"))continue;
    try{
     String raw;try(java.io.FileInputStream in=new java.io.FileInputStream(f);java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream()){byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1)out.write(b,0,n);raw=new String(out.toByteArray(),StandardCharsets.UTF_8); }
     JSONObject j=new JSONObject(raw);
@@ -68,6 +78,7 @@ public class FdkLocationService extends Service implements LocationListener {
   startForeground(310,n);
   manager=getSystemService(LocationManager.class);
   try{manager.removeUpdates(this);manager.requestLocationUpdates(LocationManager.GPS_PROVIDER,5000,0,this,Looper.getMainLooper());}catch(Exception e){stopSelf();}
+  watchNetwork();
   if(!scheduled){scheduled=true;uploader.scheduleWithFixedDelay(()->upload(),0,15,java.util.concurrent.TimeUnit.SECONDS);}
   return START_NOT_STICKY;
  }
@@ -78,7 +89,7 @@ public class FdkLocationService extends Service implements LocationListener {
    java.io.File dir=new java.io.File(getFilesDir(),"gps-pending");dir.mkdirs();java.io.File dest=new java.io.File(dir,shift+"-"+p.getTime()+"-"+java.util.UUID.randomUUID()+".json");java.io.File tmp=new java.io.File(dir,dest.getName()+".tmp");try(FileOutputStream f=new FileOutputStream(tmp)){f.write(j.toString().getBytes(StandardCharsets.UTF_8));f.getFD().sync();}if(!tmp.renameTo(dest))throw new java.io.IOException("GPS queue commit failed");last=now;
   }catch(Exception e){android.util.Log.e("FDK","GPS local write failed",e);stopSelf();}
  }
- @Override public void onDestroy(){shift=null;uploader.shutdownNow();if(manager!=null)manager.removeUpdates(this);stopForeground(STOP_FOREGROUND_REMOVE);super.onDestroy();}
+ @Override public void onDestroy(){shift=null;if(connectivity!=null&&networkCallback!=null)try{connectivity.unregisterNetworkCallback(networkCallback);}catch(Exception ignored){}networkCallback=null;uploader.shutdownNow();if(manager!=null)manager.removeUpdates(this);stopForeground(STOP_FOREGROUND_REMOVE);super.onDestroy();}
  @Override public void onProviderEnabled(String p){}
  @Override public void onProviderDisabled(String p){}
  @Override public void onStatusChanged(String p,int s,Bundle b){}
