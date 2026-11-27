@@ -30,10 +30,13 @@ async function gpsPeriodTotals(){
  const today=chileDay(new Date()),year=today.slice(0,4)+'-01-01',m=new Date(today+'T12:00:00Z');m.setUTCDate(m.getUTCDate()-((m.getUTCDay()+6)%7));const monday=m.toISOString().slice(0,10),from=monday<year?monday:year;
  const vehicles=await db.from('vehicles').select('id,name,active');if(vehicles.error)throw vehicles.error;
  const totals=new Map(vehicles.data.filter(v=>v.active).map(v=>[v.id,{name:v.name,km:[0,0,0],known:[0,0,0],missing:[0,0,0]}]));
- let rows=[];for(let offset=0;;offset+=500){const q=await db.from('work_shifts').select('id,vehicle_id,started_at').gte('started_at',from+'T00:00:00+14:00').order('id').range(offset,offset+499);if(q.error)throw q.error;rows.push(...q.data);if(q.data.length<500)break;}
- for(const w of rows){const t=totals.get(w.vehicle_id),day=chileDay(new Date(w.started_at));if(!t||day<from||day>today)continue;const q=await db.rpc('shift_gps_distance',{p_shift:w.id});if(q.error)throw q.error;const d=q.data?.[0];for(const [i,start] of [today,monday,year].entries()){if(day<start)continue;if(d&&Number(d.points)>=2){t.km[i]+=Number(d.km);t.known[i]++;if(Number(d.gaps)>0)t.missing[i]++;}else t.missing[i]++;}}
+ const previous=new Map();let cursor=null;
+ for(;;){let query=db.from('gps_positions').select('id,shift_id,vehicle_id,latitude,longitude,recorded_at').gte('recorded_at',from+'T00:00:00+14:00').order('recorded_at').order('id').limit(500);if(cursor)query=query.or('recorded_at.gt.'+cursor.recorded_at+',and(recorded_at.eq.'+cursor.recorded_at+',id.gt.'+cursor.id+')');const q=await query;if(q.error)throw q.error;
+ for(const p of q.data){const t=totals.get(p.vehicle_id),old=previous.get(p.shift_id);previous.set(p.shift_id,p);if(!t)continue;const day=chileDay(new Date(p.recorded_at));if(day<from||day>today)continue;const seconds=old?(new Date(p.recorded_at)-new Date(old.recorded_at))/1000:0;const rad=Math.PI/180;let meters=0;if(old){const a=Math.sin((p.latitude-old.latitude)*rad/2)**2+Math.cos(old.latitude*rad)*Math.cos(p.latitude*rad)*Math.sin((p.longitude-old.longitude)*rad/2)**2;meters=12742000*Math.asin(Math.sqrt(Math.max(0,Math.min(1,a))));}
+ for(const [i,bound] of [today,monday,year].entries()){if(day<bound)continue;if(!old||seconds<=0||seconds>90||meters/seconds>40){t.missing[i]++;continue;}t.known[i]++;if(meters>=15)t.km[i]+=meters/1000;}}
+ if(q.data.length<500)break;cursor=q.data[q.data.length-1];}
  out.replaceChildren();for(const t of totals.values()){shiftCard(out,t.name,['Hoy','Semana','Año'].map((label,i)=>label+': '+(t.known[i]?t.km[i].toLocaleString('es-CL',{maximumFractionDigits:2})+' km':'Sin datos suficientes')+(t.missing[i]?' · cobertura incompleta':'')),false);}if(!totals.size)out.textContent='Sin camiones activos';
- const note=document.createElement('p');note.textContent='Estimación GPS por fecha de inicio de jornada (Chile). Jornadas que cruzan medianoche se atribuyen al día de inicio.';out.append(note);
+ const note=document.createElement('p');note.textContent='Estimación GPS por fecha de cada posición (Chile). Los tramos que cruzan medianoche se atribuyen al día de llegada; las discontinuidades no se suman.';out.append(note);
  }catch(e){out.textContent='No fue posible calcular kilómetros: '+e.message;}finally{btn.disabled=false;}
 }
 el('gpsKmRefresh').onclick=gpsPeriodTotals;
