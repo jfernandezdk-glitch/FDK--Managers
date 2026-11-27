@@ -34,3 +34,7 @@ Excluir control de horas trabajadas, descansos, comidas y nómina. Conservar ini
 
 ## GPS simplificado — alcance definitivo
 Ubicación actual durante jornada, contadores diarios/semanales/anuales, pantalla bloqueada, recuperación automática de conexión, 30 segundos en movimiento y 60 detenido, parada al cerrar jornada. Sin velocidad/dirección/historial visual ni Traccar experimental. Conservar posiciones internas para kilometraje y TAG. Pruebas pendientes.
+
+## Identidad visual e instalación — 27/11/2026
+- [ ] Usar exactamente el logo metálico Transportes FDK aprobado por el usuario (camión plateado, fondo azul, bordes cromados/naranjos), sin rediseñarlo. Sustituir iconos Android normales/adaptativos y pantalla de carga; conservar nombre FDK Manager. Verificar icono en launcher Samsung. Si el original no está disponible, solicitarlo; no sustituir por aproximación.
+- [ ] Investigar rechazo de instalación del APK debug #55 en Samsung; comprobar firma, versionCode y compatibilidad. Establecer firma persistente segura y versiones incrementales, sin publicar claves ni secretos. Verificar instalación limpia y actualización conservando datos. No afirmar causa confirmada sin diagnóstico.
