@@ -36,6 +36,29 @@ jobs:
       - run: npx cap add android
       - run: node native/android/install.mjs
       - run: npx cap sync android
+      - name: GPS integration contract checks
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          const service=fs.readFileSync('native/android/FdkLocationService.java','utf8');
+          const plugin=fs.readFileSync('native/android/FdkGpsPlugin.java','utf8');
+          const panel=fs.readFileSync('../panel-r31.html','utf8');
+          const installer=fs.readFileSync('native/android/install.mjs','utf8');
+          for(const [name,source,pattern] of [
+            ['network permission',installer,/ACCESS_NETWORK_STATE/],
+            ['network recovery',service,/registerDefaultNetworkCallback/],
+            ['durable queue',service,/getFD\(\).sync\(\)/],
+            ['periodic retry',service,/15,java.util.concurrent.TimeUnit.SECONDS/],
+            ['event identity',service,/payload.put\("p_event"/],
+            ['rejected queue',service,/gps-rejected/],
+            ['driver isolation',service,/st.equals\(j.optString\("staff_id"\)\)/],
+            ['native refresh',service,/FdkGpsPlugin.refreshSession/],
+            ['refresh serialization',plugin,/synchronized\(AUTH_LOCK\)/],
+            ['UI refresh bridge',panel,/androidAuth.authRefresh/],
+            ['GPS shutdown',service,/uploader.shutdownNow/]
+          ]) {assert.match(source,pattern,name);console.log('PASS contract:',name);}
+          JS
       - run: bash gradlew assembleDebug
         working-directory: mobile/android
       - uses: actions/upload-artifact@v4
