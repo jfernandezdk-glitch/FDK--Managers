@@ -1,0 +1,54 @@
+name: FDK Cartography
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 5 1 1,7 *'
+  push:
+    paths:
+      - '.github/workflows/fdk-cartography.yml'
+permissions:
+  contents: read
+concurrency:
+  group: fdk-cartography
+  cancel-in-progress: false
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Install Osmium
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y osmium-tool
+      - name: Download Chile
+        run: |
+          curl --fail --location --retry 3 --max-time 1200 https://download.geofabrik.de/south-america/chile-latest.osm.pbf -o chile.osm.pbf
+          mkdir -p catalog
+          osmium fileinfo -e chile.osm.pbf > catalog/source-info.txt
+          sha256sum chile.osm.pbf > catalog/source-sha256.txt
+      - name: Extract tolls and road network
+        run: |
+          osmium tags-filter chile.osm.pbf n/barrier=toll_booth,toll_gantry n/highway=toll_gantry w/highway=motorway,motorway_link,trunk,trunk_link w/tunnel w/toll=yes -o filtered.osm.pbf
+          osmium export filtered.osm.pbf -f geojsonseq --add-unique-id=type_id -o catalog/features.geojsonseq
+          test -s catalog/features.geojsonseq
+          python3 - <<'PY'
+          import json, collections
+          counts=collections.Counter()
+          with open('catalog/features.geojsonseq') as f:
+              for line in f:
+                  obj=json.loads(line.lstrip('\x1e'))
+                  p=obj.get('properties',{})
+                  counts['features']+=1
+                  if p.get('barrier') in ('toll_booth','toll_gantry') or p.get('highway')=='toll_gantry': counts['toll_candidates']+=1
+                  if p.get('tunnel') not in (None,'no'): counts['tunnel_candidates']+=1
+          assert counts['features']>0
+          with open('catalog/summary.json','w') as f: json.dump(dict(counts),f,indent=2)
+          print(dict(counts))
+          PY
+          printf '%s\n' 'OpenStreetMap contributors — ODbL https://www.openstreetmap.org/copyright' 'Source: https://download.geofabrik.de/south-america/chile.html' 'Candidate data only; not verified for billing. No database publication.' > catalog/README.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FDK-cartography-candidates
+          path: catalog/
+          retention-days: 30
+          if-no-files-found: error
