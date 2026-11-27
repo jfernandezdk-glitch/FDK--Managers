@@ -35,8 +35,6 @@ jobs:
       - run: npm run prepareWeb
       - run: npx cap add android
       - run: node native/android/install.mjs
-        env:
-          FDK_TRACCAR_EXPERIMENT: '1'
       - run: npx cap sync android
       - run: bash gradlew assembleDebug
         working-directory: mobile/android
