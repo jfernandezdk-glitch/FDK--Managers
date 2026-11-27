@@ -25,11 +25,16 @@ public class FdkLocationService extends Service implements LocationListener {
   networkCallback=new android.net.ConnectivityManager.NetworkCallback(){@Override public void onAvailable(android.net.Network network){if(!uploader.isShutdown())try{uploader.execute(()->upload());}catch(java.util.concurrent.RejectedExecutionException ignored){}}};
   try{connectivity.registerDefaultNetworkCallback(networkCallback);}catch(Exception e){networkCallback=null;}
  }
- private void upload(){
+ // Package-private test seams; production defaults remain fixed.
+ org.json.JSONObject session(boolean force) throws Exception {return FdkGpsPlugin.refreshSession(this,null,force);}
+ java.net.HttpURLConnection openReceiver() throws java.io.IOException {
+  return (java.net.HttpURLConnection)new java.net.URL("https://jwzgtzgmikkreecjuiey.supabase.co/rest/v1/rpc/receive_gps_point").openConnection();
+ }
+ void upload(){
   final String sh=shift, st=staff, v=vehicle;
   if(sh==null||st==null||v==null)return;
   final String jwt;
-  try{jwt=FdkGpsPlugin.refreshSession(this,null,false).getString("access_token");}catch(Exception e){return;}
+  try{jwt=session(false).getString("access_token");}catch(Exception e){return;}
   if(!sh.equals(shift))return;
   java.io.File dir=new java.io.File(getFilesDir(),"gps-pending");
   java.io.File[] files=dir.listFiles();if(files==null)return;
@@ -53,12 +58,12 @@ public class FdkLocationService extends Service implements LocationListener {
     java.text.SimpleDateFormat fmt=new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",java.util.Locale.US);
     fmt.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
     payload.put("p_recorded",fmt.format(new java.util.Date(ms)));
-    java.net.HttpURLConnection c=(java.net.HttpURLConnection)new java.net.URL("https://jwzgtzgmikkreecjuiey.supabase.co/rest/v1/rpc/receive_gps_point").openConnection();
+    java.net.HttpURLConnection c=openReceiver();
     try{c.setConnectTimeout(10000);c.setReadTimeout(10000);c.setRequestMethod("POST");c.setDoOutput(true);
     c.setRequestProperty("apikey","sb_publishable_NS-C2C9bB934aGZICKWSog_woHtu-IM");
     c.setRequestProperty("Authorization","Bearer "+jwt);c.setRequestProperty("Content-Type","application/json");c.setRequestProperty("Prefer","return=minimal");
     try(java.io.OutputStream out=c.getOutputStream()){out.write(payload.toString().getBytes(StandardCharsets.UTF_8));}
-    int status=c.getResponseCode();if(status>=200&&status<300){f.delete();}else if(status==400||status==422){java.io.File rejected=new java.io.File(getFilesDir(),"gps-rejected");if(!rejected.exists()&&!rejected.mkdirs())return;if(!f.renameTo(new java.io.File(rejected,f.getName())))return;android.util.Log.w("FDK","GPS record retained for review: HTTP "+status);}else {if(status==401&&sh.equals(shift))FdkGpsPlugin.refreshSession(this,null,true);return;}
+    int status=c.getResponseCode();if(status>=200&&status<300){f.delete();}else if(status==400||status==422){java.io.File rejected=new java.io.File(getFilesDir(),"gps-rejected");if(!rejected.exists()&&!rejected.mkdirs())return;if(!f.renameTo(new java.io.File(rejected,f.getName())))return;android.util.Log.w("FDK","GPS record retained for review: HTTP "+status);}else {if(status==401&&sh.equals(shift))session(true);return;}
     }finally{c.disconnect();}
    }catch(Exception e){return;}
   }
