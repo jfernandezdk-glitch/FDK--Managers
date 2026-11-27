@@ -58,7 +58,7 @@ public class FdkLocationService extends Service implements LocationListener {
     c.setRequestProperty("apikey","sb_publishable_NS-C2C9bB934aGZICKWSog_woHtu-IM");
     c.setRequestProperty("Authorization","Bearer "+jwt);c.setRequestProperty("Content-Type","application/json");c.setRequestProperty("Prefer","return=minimal");
     try(java.io.OutputStream out=c.getOutputStream()){out.write(payload.toString().getBytes(StandardCharsets.UTF_8));}
-    int status=c.getResponseCode();if(status>=200&&status<300)f.delete();else {if(status==401&&sh.equals(shift))FdkGpsPlugin.refreshSession(this,null,true);return;}
+    int status=c.getResponseCode();if(status>=200&&status<300){f.delete();}else if(status==400||status==422){java.io.File rejected=new java.io.File(getFilesDir(),"gps-rejected");if(!rejected.exists()&&!rejected.mkdirs())return;if(!f.renameTo(new java.io.File(rejected,f.getName())))return;android.util.Log.w("FDK","GPS record retained for review: HTTP "+status);}else {if(status==401&&sh.equals(shift))FdkGpsPlugin.refreshSession(this,null,true);return;}
     }finally{c.disconnect();}
    }catch(Exception e){return;}
   }
