@@ -17,8 +17,11 @@ public class FdkLocationService extends Service implements LocationListener {
  private final java.util.concurrent.ScheduledExecutorService uploader=java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
  private boolean scheduled=false;
  private void upload(){
-  final String sh=shift, jwt=token, st=staff, v=vehicle;
-  if(sh==null||jwt==null||st==null||v==null)return;
+  final String sh=shift, st=staff, v=vehicle;
+  if(sh==null||st==null||v==null)return;
+  final String jwt;
+  try{jwt=FdkGpsPlugin.refreshSession(this,null,false).getString("access_token");}catch(Exception e){return;}
+  if(!sh.equals(shift))return;
   java.io.File dir=new java.io.File(getFilesDir(),"gps-pending");
   java.io.File[] files=dir.listFiles();if(files==null)return;
   java.util.Arrays.sort(files);
@@ -45,7 +48,7 @@ public class FdkLocationService extends Service implements LocationListener {
     c.setRequestProperty("apikey","sb_publishable_NS-C2C9bB934aGZICKWSog_woHtu-IM");
     c.setRequestProperty("Authorization","Bearer "+jwt);c.setRequestProperty("Content-Type","application/json");c.setRequestProperty("Prefer","return=minimal");
     try(java.io.OutputStream out=c.getOutputStream()){out.write(payload.toString().getBytes(StandardCharsets.UTF_8));}
-    int status=c.getResponseCode();if(status>=200&&status<300)f.delete();else return;
+    int status=c.getResponseCode();if(status>=200&&status<300)f.delete();else {if(status==401&&sh.equals(shift))FdkGpsPlugin.refreshSession(this,null,true);return;}
     }finally{c.disconnect();}
    }catch(Exception e){return;}
   }
