@@ -6,7 +6,17 @@ const secureAuthStorage=androidAuth?{
  async setItem(key,value){await androidAuth.authSet({key,value});localStorage.removeItem(key);},
  async removeItem(key){localStorage.removeItem(key);await androidAuth.authRemove({key});}
 }:undefined;
-const db=createClient('https://jwzgtzgmikkreecjuiey.supabase.co','sb_publishable_NS-C2C9bB934aGZICKWSog_woHtu-IM',androidAuth?{auth:{storage:secureAuthStorage}}:undefined);
+const nativeAuthFetch=async (input,init)=>{
+ const url=new URL(typeof input==='string'?input:input.url||String(input));
+ if(url.origin==='https://jwzgtzgmikkreecjuiey.supabase.co'&&url.pathname==='/auth/v1/token'&&url.searchParams.get('grant_type')==='refresh_token'){
+  const body=JSON.parse(init?.body||'{}');
+  if(!body.refresh_token)throw new Error('Missing refresh token');
+  const {session}=await androidAuth.authRefresh({refreshToken:body.refresh_token});
+  return new Response(session,{status:200,headers:{'Content-Type':'application/json'}});
+ }
+ return fetch(input,init);
+};
+const db=createClient('https://jwzgtzgmikkreecjuiey.supabase.co','sb_publishable_NS-C2C9bB934aGZICKWSog_woHtu-IM',androidAuth?{auth:{storage:secureAuthStorage},global:{fetch:nativeAuthFetch}}:undefined);
 const el=id=>document.getElementById(id), msg=s=>el('status').textContent=s;
 let recovery=false;
 let currentPage='home';function page(p){if(p==='customers'&&!tagOwner)return;currentPage=p;el('customersPage').hidden=p!=='customers';if(p==='customers'){commercialTab('clients');loadCustomers();}el('nav').hidden=true;el('pagetitle').textContent=({home:'Panel de flota',vehicles:'Camiones',staff:'Equipo',settings:'Configuración',services:'Agenda y servicios',shifts:'Jornadas',gps:'Mapa GPS',notifications:'Notificaciones',fuel:'Combustible',expenses:'Gastos y peajes',customers:'Clientes y tarifas'})[p];el('counts').hidden=true;el('homeStats').hidden=p!=='home';el('statTrucks').parentElement.hidden=true;el('statDrivers').parentElement.hidden=true;el('homeQuick').hidden=p!=='home'||!tagOwner;el('expensesPage').hidden=p!=='expenses';if(p==='expenses'){loadExpenses();loadTag();}el('fuelPage').hidden=p!=='fuel';if(p==='fuel')loadFuel();el('notificationsPage').hidden=p!=='notifications';if(p==='notifications')refreshNotices();el('gpsPage').hidden=!['home','gps'].includes(p);if(['home','gps'].includes(p))refreshGPS();el('vehiclesPage').hidden=p!=='vehicles';el('staffPage').hidden=p!=='staff';el('settingsPage').hidden=p!=='settings';if(p==='settings'&&tagOwner)loadTagSync();el('servicesPage').hidden=p!=='services';if(p==='services')dashboard().catch(e=>msg('Error al actualizar agenda: '+e.message));el('shiftsPage').hidden=p!=='shifts';if(p==='shifts')dashboard().catch(e=>msg('Error al actualizar jornadas: '+e.message));}el('menu').onclick=()=>el('nav').hidden=false;el('closemenu').onclick=()=>el('nav').hidden=true;document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>page(b.dataset.page));
