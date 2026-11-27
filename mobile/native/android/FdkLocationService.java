@@ -23,15 +23,17 @@ public class FdkLocationService extends Service implements LocationListener {
   java.io.File[] files=dir.listFiles();if(files==null)return;
   java.util.Arrays.sort(files);
   for(java.io.File f:files){
-   if(!f.getName().startsWith(sh+"-")||!sh.equals(shift)||!f.getName().endsWith(".json"))continue;
+   if(!sh.equals(shift)||!f.getName().endsWith(".json"))continue;
    try{
-    String raw=new String(java.nio.file.Files.readAllBytes(f.toPath()),StandardCharsets.UTF_8);
+    String raw;try(java.io.FileInputStream in=new java.io.FileInputStream(f);java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream()){byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1)out.write(b,0,n);raw=new String(out.toByteArray(),StandardCharsets.UTF_8); }
     JSONObject j=new JSONObject(raw);
     // Never reattribute queued positions to a different driver or vehicle.
-    if(!st.equals(j.optString("staff_id"))||!v.equals(j.optString("vehicle_id"))||!sh.equals(j.optString("shift_id")))continue;
+    if(!st.equals(j.optString("staff_id")))continue;
+    String queuedShift=j.getString("shift_id");
+    if(!f.getName().startsWith(queuedShift+"-"))continue;
     long ms=j.getLong("recorded_at_ms");
     JSONObject payload=new JSONObject();
-    payload.put("p_shift",sh);
+    payload.put("p_shift",queuedShift);
     payload.put("p_event",f.getName().substring(f.getName().length()-41,f.getName().length()-5));
     payload.put("p_lat",j.getDouble("latitude"));payload.put("p_lon",j.getDouble("longitude"));
     payload.put("p_speed",j.has("speed_kmh")?j.getDouble("speed_kmh"):JSONObject.NULL);
@@ -52,6 +54,7 @@ public class FdkLocationService extends Service implements LocationListener {
  @Override public IBinder onBind(Intent i){return null;}
  @Override public int onStartCommand(Intent i,int flags,int id){
   if(i==null || "stop".equals(i.getAction())){stopSelf();return START_NOT_STICKY;}
+  if(!java.util.Objects.equals(shift,i.getStringExtra("shift")))last=0;
   shift=i.getStringExtra("shift");token=i.getStringExtra("token");staff=i.getStringExtra("staff");vehicle=i.getStringExtra("vehicle");
   if(shift==null || token==null || staff==null || vehicle==null || !shift.matches("[0-9a-fA-F-]{36}") || checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED){stopSelf();return START_NOT_STICKY;}
   NotificationManager nm=getSystemService(NotificationManager.class);
@@ -61,7 +64,7 @@ public class FdkLocationService extends Service implements LocationListener {
   Notification n=(Build.VERSION.SDK_INT>=26?new Notification.Builder(this,"fdk_gps"):new Notification.Builder(this)).setContentTitle("FDK Manager").setContentText("Ubicación activa durante jornada").setSmallIcon(android.R.drawable.ic_menu_mylocation).setOngoing(true).addAction(new Notification.Action.Builder(null,"Detener GPS",pi).build()).build();
   startForeground(310,n);
   manager=getSystemService(LocationManager.class);
-  try{manager.removeUpdates(this);manager.requestLocationUpdates(LocationManager.GPS_PROVIDER,30000,0,this,Looper.getMainLooper());}catch(Exception e){stopSelf();}
+  try{manager.removeUpdates(this);manager.requestLocationUpdates(LocationManager.GPS_PROVIDER,5000,0,this,Looper.getMainLooper());}catch(Exception e){stopSelf();}
   if(!scheduled){scheduled=true;uploader.scheduleWithFixedDelay(()->upload(),0,15,java.util.concurrent.TimeUnit.SECONDS);}
   return START_NOT_STICKY;
  }
