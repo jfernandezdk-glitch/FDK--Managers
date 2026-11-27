@@ -53,13 +53,18 @@ public class FdkGpsPlugin extends Plugin {
   byte[] raw=new byte[iv.length+enc.length];System.arraycopy(iv,0,raw,0,iv.length);System.arraycopy(enc,0,raw,iv.length,enc.length);
   if(!ctx.getSharedPreferences("fdk_secure_auth",0).edit().putString(SESSION_KEY,android.util.Base64.encodeToString(raw,android.util.Base64.NO_WRAP)).commit())throw new java.io.IOException("Session write failed");
  }
+ interface SessionStore {String read() throws Exception;void write(String value) throws Exception;}
+ interface RefreshConnection {java.net.HttpURLConnection open() throws Exception;}
  static org.json.JSONObject refreshSession(android.content.Context ctx,String expected,boolean force) throws Exception {
+  return refreshSession(new SessionStore(){public String read() throws Exception{return readSession(ctx);}public void write(String value) throws Exception{writeSession(ctx,value);}},()->(java.net.HttpURLConnection)new java.net.URL("https://jwzgtzgmikkreecjuiey.supabase.co/auth/v1/token?grant_type=refresh_token").openConnection(),expected,force);
+ }
+ static org.json.JSONObject refreshSession(SessionStore store,RefreshConnection connection,String expected,boolean force) throws Exception {
   synchronized(AUTH_LOCK){
-   String raw=readSession(ctx);if(raw==null)throw new java.io.IOException("No session");
+   String raw=store.read();if(raw==null)throw new java.io.IOException("No session");
    org.json.JSONObject old=new org.json.JSONObject(raw);
    if(expected!=null&&!expected.equals(old.getString("refresh_token"))){if(priorRefreshTokens.contains(expected))return old;throw new java.io.IOException("Session changed");}
    if(!force&&old.optLong("expires_at")>System.currentTimeMillis()/1000+120)return old;
-   java.net.HttpURLConnection c=(java.net.HttpURLConnection)new java.net.URL("https://jwzgtzgmikkreecjuiey.supabase.co/auth/v1/token?grant_type=refresh_token").openConnection();
+   java.net.HttpURLConnection c=connection.open();
    try{
     c.setConnectTimeout(10000);c.setReadTimeout(10000);c.setRequestMethod("POST");c.setDoOutput(true);
     c.setRequestProperty("apikey","sb_publishable_NS-C2C9bB934aGZICKWSog_woHtu-IM");c.setRequestProperty("Content-Type","application/json");
@@ -71,7 +76,7 @@ public class FdkGpsPlugin extends Plugin {
     next.getString("access_token");next.getString("refresh_token");
     if(!old.getJSONObject("user").getString("id").equals(next.getJSONObject("user").getString("id")))throw new java.io.IOException("Session identity mismatch");
     if(!next.has("expires_at"))next.put("expires_at",System.currentTimeMillis()/1000+next.getLong("expires_in"));
-    writeSession(ctx,next.toString());priorRefreshTokens.add(old.getString("refresh_token"));while(priorRefreshTokens.size()>8)priorRefreshTokens.remove(priorRefreshTokens.iterator().next());return next;
+    store.write(next.toString());priorRefreshTokens.add(old.getString("refresh_token"));while(priorRefreshTokens.size()>8)priorRefreshTokens.remove(priorRefreshTokens.iterator().next());return next;
    }finally{c.disconnect();}
   }
  }
