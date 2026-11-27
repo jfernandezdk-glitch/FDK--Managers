@@ -60,7 +60,7 @@ jobs:
           ]) {assert.match(source,pattern,name);console.log('PASS contract:',name);}
           JS
       - name: Run GPS JVM recovery simulations
-        run: bash gradlew testDebugUnitTest --tests cl.transportefdk.manager.GpsRecoveryTest
+        run: bash gradlew testDebugUnitTest --tests cl.transportefdk.manager.GpsRecoveryTest --tests cl.transportefdk.manager.AuthConcurrencyTest
         working-directory: mobile/android
       - run: bash gradlew assembleDebug
         working-directory: mobile/android
