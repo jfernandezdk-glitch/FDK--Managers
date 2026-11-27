@@ -19,3 +19,11 @@ if(process.env.FDK_TRACCAR_EXPERIMENT==='1'){
  if(!g.includes('org.traccar:traccar-client-sdk'))g+='\ndependencies { implementation "org.traccar:traccar-client-sdk:1.1.4" }\n';
  await writeFile(gradle,g);
 }
+
+// JVM Android simulation dependencies (test scope only).
+const testGradle='android/app/build.gradle';
+let testConfig=await readFile(testGradle,'utf8');
+if(!testConfig.includes('org.robolectric:robolectric')){
+ testConfig+='\nandroid { testOptions { unitTests.includeAndroidResources = true } }\ndependencies { testImplementation "junit:junit:4.13.2"; testImplementation "org.robolectric:robolectric:4.14.1"; testImplementation "com.squareup.okhttp3:mockwebserver:4.12.0" }\n';
+ await writeFile(testGradle,testConfig);
+}
