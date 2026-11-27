@@ -8,6 +8,7 @@ import com.getcapacitor.annotation.*;
 public class FdkGpsPlugin extends Plugin {
  private static final String KEY_ALIAS="fdk.auth.v1";
  private static final Object AUTH_LOCK=new Object();
+ private static final java.util.LinkedHashSet<String> priorRefreshTokens=new java.util.LinkedHashSet<>();
  private static javax.crypto.SecretKey authKey() throws Exception {
   java.security.KeyStore ks=java.security.KeyStore.getInstance("AndroidKeyStore");ks.load(null);
   if(ks.containsAlias(KEY_ALIAS))return (javax.crypto.SecretKey)ks.getKey(KEY_ALIAS,null);
@@ -28,12 +29,13 @@ public class FdkGpsPlugin extends Plugin {
  }catch(Exception e){call.reject("No se pudo leer sesión segura",e);}}}
  @PluginMethod public void authSet(PluginCall call){synchronized(AUTH_LOCK){try{
   String k=storageKey(call),v=call.getString("value");if(v==null)throw new IllegalArgumentException("Missing value");
+  if(SESSION_KEY.equals(k)){String current=readSession(getContext());String incoming=new org.json.JSONObject(v).getString("refresh_token");if(priorRefreshTokens.contains(incoming)){call.resolve();return;}if(current==null||!new org.json.JSONObject(current).getJSONObject("user").getString("id").equals(new org.json.JSONObject(v).getJSONObject("user").getString("id")))priorRefreshTokens.clear();}
   javax.crypto.Cipher c=javax.crypto.Cipher.getInstance("AES/GCM/NoPadding");c.init(javax.crypto.Cipher.ENCRYPT_MODE,authKey());
   c.updateAAD(k.getBytes(java.nio.charset.StandardCharsets.UTF_8));byte[] iv=c.getIV();if(iv.length!=12)throw new IllegalStateException("Invalid IV");
   byte[] encrypted=c.doFinal(v.getBytes(java.nio.charset.StandardCharsets.UTF_8));byte[] raw=new byte[iv.length+encrypted.length];System.arraycopy(iv,0,raw,0,iv.length);System.arraycopy(encrypted,0,raw,iv.length,encrypted.length);
   if(!authPrefs().edit().putString(k,android.util.Base64.encodeToString(raw,android.util.Base64.NO_WRAP)).commit())throw new java.io.IOException("Secure storage write failed");call.resolve();
  }catch(Exception e){call.reject("No se pudo guardar sesión segura",e);}}}
- @PluginMethod public void authRemove(PluginCall call){synchronized(AUTH_LOCK){try{if(!authPrefs().edit().remove(storageKey(call)).commit())throw new java.io.IOException("Secure storage removal failed");call.resolve();}catch(Exception e){call.reject("No se pudo eliminar sesión segura",e);}}}
+ @PluginMethod public void authRemove(PluginCall call){synchronized(AUTH_LOCK){try{String k=storageKey(call);if(SESSION_KEY.equals(k)){String current=readSession(getContext());if(current!=null)priorRefreshTokens.add(new org.json.JSONObject(current).getString("refresh_token"));}if(!authPrefs().edit().remove(k).commit())throw new java.io.IOException("Secure storage removal failed");call.resolve();}catch(Exception e){call.reject("No se pudo eliminar sesión segura",e);}}}
  private static final String SESSION_KEY="sb-jwzgtzgmikkreecjuiey-auth-token";
  static String readSession(android.content.Context ctx) throws Exception {
   String v=ctx.getSharedPreferences("fdk_secure_auth",0).getString(SESSION_KEY,null);
@@ -55,7 +57,7 @@ public class FdkGpsPlugin extends Plugin {
   synchronized(AUTH_LOCK){
    String raw=readSession(ctx);if(raw==null)throw new java.io.IOException("No session");
    org.json.JSONObject old=new org.json.JSONObject(raw);
-   if(expected!=null&&!expected.equals(old.getString("refresh_token")))return old;
+   if(expected!=null&&!expected.equals(old.getString("refresh_token"))){if(priorRefreshTokens.contains(expected))return old;throw new java.io.IOException("Session changed");}
    if(!force&&old.optLong("expires_at")>System.currentTimeMillis()/1000+120)return old;
    java.net.HttpURLConnection c=(java.net.HttpURLConnection)new java.net.URL("https://jwzgtzgmikkreecjuiey.supabase.co/auth/v1/token?grant_type=refresh_token").openConnection();
    try{
@@ -69,7 +71,7 @@ public class FdkGpsPlugin extends Plugin {
     next.getString("access_token");next.getString("refresh_token");
     if(!old.getJSONObject("user").getString("id").equals(next.getJSONObject("user").getString("id")))throw new java.io.IOException("Session identity mismatch");
     if(!next.has("expires_at"))next.put("expires_at",System.currentTimeMillis()/1000+next.getLong("expires_in"));
-    writeSession(ctx,next.toString());return next;
+    writeSession(ctx,next.toString());priorRefreshTokens.add(old.getString("refresh_token"));while(priorRefreshTokens.size()>8)priorRefreshTokens.remove(priorRefreshTokens.iterator().next());return next;
    }finally{c.disconnect();}
   }
  }
