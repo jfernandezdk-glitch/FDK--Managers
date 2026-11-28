@@ -54,3 +54,7 @@ Ubicación actual durante jornada, contadores diarios/semanales/anuales, pantall
 - Procesamiento externo al teléfono, extracción selectiva, comparación y validación antes de publicar catálogo versionado en Supabase. Nuevos pórticos y rutas ambiguas no se activan sin verificación suficiente.
 - Conservar versión anterior ante fallos, restauración, historial de cambios, fechas última/próxima actualización y notificación de resultado al propietario. No alterar cruces históricos ni requerir reinstalación APK. Sin servicios de pago sin autorización.
 - Implementación y pruebas pendientes; no confundir requisito aprobado con automatización operativa.
+
+
+## Hoja de vida — clasificación TAG aprobada
+Mantener formulario General/Documentos/Mantención/Rentabilidad y selector simple de ejes: 2, 3, 4, 5 o más; mostrar categoría y ejemplo tarifario por concesión. Solo propietario edita. Guardar número real de ejes (si 5 o más, solicitar número exacto), sin valor predeterminado para vehículos existentes. Contemplar remolque mediante configuración efectiva auditada, sin modificar históricos. Resolver categoría por concesión y fecha del cruce; conservar categoría aplicada en cada cobro. Si falta clasificación o regla oficial, dejar pendiente sin importe cero. No activar tarifas sin cruce documental y cartográfico. Diseño aprobado; implementación y pruebas pendientes.
