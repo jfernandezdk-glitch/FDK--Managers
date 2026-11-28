@@ -211,6 +211,29 @@ jobs:
               for k,v in sorted(counts.items()): f.write(f'| {k} | {v} |\n')
               f.write('\nDocument text matches are leads only. No price extraction or billing authorization.\n')
           PY
+      - name: Extract tariff table row candidates
+        run: |
+          python3 - <<'PY'
+          import pathlib,json,re,collections,os
+          counts=collections.Counter()
+          with open('catalog/price-row-candidates.jsonl','w') as out:
+              for d in json.loads(pathlib.Path('official/manifest.json').read_text()):
+                  raw=pathlib.Path('official',d['file']+'.txt').read_text()
+                  counts['documents']+=1
+                  for page,body in enumerate(raw.split(chr(12)),1):
+                      lines=body.splitlines()
+                      for i,line in enumerate(lines):
+                          cells=re.split(r'\s{2,}',line.strip())
+                          amounts=re.findall(r'(?<![\d:])(?:\$\s*\d[\d.,]*|\d{1,3}(?:\.\d{3})+(?:,\d+)?)(?![\d:])',line)
+                          if not amounts: continue
+                          counts['candidate_rows']+=1
+                          out.write(json.dumps(dict(source=d['url'],sha256=d['sha256'],file=d['file'],page=page,line=i+1,raw=line,cells=cells,amount_tokens=amounts,context=lines[max(0,i-12):i+3],review_status='pending',billing_eligible=False),ensure_ascii=False)+'\n')
+          pathlib.Path('catalog/price-row-summary.json').write_text(json.dumps(dict(counts),indent=2))
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write('\n## TAG price row candidates\n\n')
+              for k,v in counts.items(): f.write(f'- {k}: {v}\n')
+              f.write('\nRaw monetary tokens only; category, direction, time, validity and amounts require table-specific validation. No database writes.\n')
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: FDK-cartography-candidates
