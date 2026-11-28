@@ -74,3 +74,7 @@ La prioridad es la cobertura y funcionamiento correcto de todas las autopistas y
 
 ## Definitive TAG fallback — owner approved
 Overrides conflicting earlier fallback requirements: unidentified gantry: ignore for billing and notifications. Identified crossing without a verified applicable tariff: one persistent owner-only notification per crossing, optional manual amount on that same crossing, audited and counted once. Ignoring it requires no action, no reminders, no financial amount and no weekly closure block. Unknown amounts are not zero-valued tariffs. Driver has no intervention. No requirement for complete national coverage before release; verified rules only. Implementation and tests remain required.
+
+
+## Scope exclusion: oversize transport
+Owner explicitly excludes oversize transport from FDK Manager. Do not implement oversize dimension inputs, special pricing or related tests. Previously transcribed oversize tariffs remain inactive and must not enter ordinary truck pricing. All other previously approved TAG software tests remain in scope.
