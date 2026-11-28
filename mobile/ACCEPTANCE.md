@@ -58,3 +58,7 @@ Ubicación actual durante jornada, contadores diarios/semanales/anuales, pantall
 
 ## Hoja de vida — clasificación TAG aprobada
 Mantener formulario General/Documentos/Mantención/Rentabilidad y selector simple de ejes: 2, 3, 4, 5 o más; mostrar categoría y ejemplo tarifario por concesión. Solo propietario edita. Guardar número real de ejes (si 5 o más, solicitar número exacto), sin valor predeterminado para vehículos existentes. Contemplar remolque mediante configuración efectiva auditada, sin modificar históricos. Resolver categoría por concesión y fecha del cruce; conservar categoría aplicada en cada cobro. Si falta clasificación o regla oficial, dejar pendiente sin importe cero. No activar tarifas sin cruce documental y cartográfico. Diseño aprobado; implementación y pruebas pendientes.
+
+
+## Navegación de hoja de vida — requisito aprobado
+En Camiones seleccionar vehículo una sola vez y mantener selección al navegar por General, Documentos, Mantención y Rentabilidad. Submenú visible, botones grandes, etiquetas claras en español, diseño móvil, formularios precargados y editables según permisos. Guardar explícitamente, confirmar éxito solo tras persistencia, cancelar sin perder datos guardados y advertir cambios sin guardar. Documentos y mantenciones editables con historial; rentabilidad calculada desde registros de origen, correcciones auditadas en origen, no sobrescribir totales. Evitar jerga técnica y pasos innecesarios. Pruebas de navegación y persistencia pendientes.
