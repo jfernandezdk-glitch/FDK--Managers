@@ -62,3 +62,7 @@ Mantener formulario General/Documentos/Mantención/Rentabilidad y selector simpl
 
 ## Navegación de hoja de vida — requisito aprobado
 En Camiones seleccionar vehículo una sola vez y mantener selección al navegar por General, Documentos, Mantención y Rentabilidad. Submenú visible, botones grandes, etiquetas claras en español, diseño móvil, formularios precargados y editables según permisos. Guardar explícitamente, confirmar éxito solo tras persistencia, cancelar sin perder datos guardados y advertir cambios sin guardar. Documentos y mantenciones editables con historial; rentabilidad calculada desde registros de origen, correcciones auditadas en origen, no sobrescribir totales. Evitar jerga técnica y pasos innecesarios. Pruebas de navegación y persistencia pendientes.
+
+
+### Guardado y edición explícitos de camiones
+Nuevo vehículo: formulario con botón grande GUARDAR CAMIÓN. Vehículo existente: consulta de solo lectura por defecto, botón EDITAR CAMIÓN para propietario, GUARDAR CAMBIOS y CANCELAR. Confirmar éxito únicamente tras persistencia y recuperación del registro; conservar formulario ante error, impedir doble envío, advertir cambios sin guardar. Mantener selección y pestaña al guardar. Validar patente única y campos numéricos; cambios de ejes no recalculan históricos. Implementación y pruebas pendientes.
