@@ -70,3 +70,7 @@ Nuevo vehículo: formulario con botón grande GUARDAR CAMIÓN. Vehículo existen
 
 ### Prioridad TAG aclarada por el propietario
 La prioridad es la cobertura y funcionamiento correcto de todas las autopistas y concesionarias TAG de Chile disponibles en las fuentes oficiales, no la implementación preferente de Radial Nororiente. Esta última es un caso de prueba frecuente por uso operativo. Aplicar las mismas exigencias de validación cartográfica, tarifaria, categorías, sentidos, horarios, túneles y vigencias a todas las concesiones. No declarar cobertura completa mientras existan fuentes o cruces pendientes de validar. Esta aclaración prevalece sobre prioridades de concesiones anteriores.
+
+
+## Definitive TAG fallback — owner approved
+Overrides conflicting earlier fallback requirements: unidentified gantry: ignore for billing and notifications. Identified crossing without a verified applicable tariff: one persistent owner-only notification per crossing, optional manual amount on that same crossing, audited and counted once. Ignoring it requires no action, no reminders, no financial amount and no weekly closure block. Unknown amounts are not zero-valued tariffs. Driver has no intervention. No requirement for complete national coverage before release; verified rules only. Implementation and tests remain required.
