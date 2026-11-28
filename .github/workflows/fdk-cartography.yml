@@ -93,6 +93,39 @@ jobs:
           with open('catalog/mop-match-summary.json','w') as f: json.dump(dict(counts),f,indent=2)
           print(dict(counts))
           PY
+      - name: Audit candidate matches and publish summary
+        run: |
+          python3 - <<'PY'
+          import json, collections, os, unicodedata, re
+          def norm(v):
+              return ' '.join(re.findall(r'[a-z0-9]+',unicodedata.normalize('NFKD',str(v)).encode('ascii','ignore').decode().lower()))
+          counts=collections.Counter()
+          fields=collections.Counter()
+          with open('catalog/mop-matches.jsonl') as src, open('catalog/identity-review.jsonl','w') as dst:
+              for line in src:
+                  row=json.loads(line)
+                  p=row['osm']; matches=row['matches']
+                  keys=[norm(p.get(k,'')) for k in ('name','ref','operator','direction') ]
+                  evidence=[]
+                  for m in matches:
+                      attrs=m['attributes']; fields.update(attrs.keys())
+                      exact={k:[a for a,v in attrs.items() if keys[i] and norm(v)==keys[i]] for i,k in enumerate(('name','ref','operator','direction'))}
+                      evidence.append(dict(m,exact_fields=exact))
+                  strong=[m for m in evidence if m['distance_m']<=50 and (m['exact_fields']['name'] or m['exact_fields']['ref'])]
+                  state='no_geographic_match' if not matches else 'identity_evidence' if strong else 'geographic_only'
+                  counts[state]+=1
+                  counts['total']+=1
+                  if not p.get('name'): counts['unnamed_'+state]+=1
+                  if len(matches)>1: counts['multiple_source_records']+=1
+                  row.update(identity_status=state,review_status='pending',billing_eligible=False,matches=evidence)
+                  dst.write(json.dumps(row,ensure_ascii=False)+'\n')
+          with open('catalog/identity-summary.json','w') as f: json.dump(dict(counts),f,indent=2)
+          with open('catalog/mop-field-inventory.json','w') as f: json.dump(dict(fields),f,indent=2)
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write('## TAG identity audit\n\n| Metric | Count |\n|---|---:|\n')
+              for k,v in sorted(counts.items()): f.write(f'| {k} | {v} |\n')
+              f.write('\nAll records remain pending. Exact attribute matches are evidence only, not billing authorization. No database writes.\n')
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: FDK-cartography-candidates
