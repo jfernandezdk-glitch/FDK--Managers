@@ -1,0 +1,54 @@
+name: FDK Official Tariffs
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fdk-official-tariffs.yml'
+permissions:
+  contents: read
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Retrieve official documents
+        run: |
+          mkdir -p official
+          curl -fLsS --retry 3 https://concesiones.mop.gob.cl/peajes-y-porticos/ -o official/index.html
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from urllib.parse import urljoin, urlparse
+          import urllib.request, pathlib, hashlib, json
+          base='https://concesiones.mop.gob.cl/peajes-y-porticos/'
+          class Links(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.urls=set()
+              def handle_starttag(self,tag,attrs):
+                  for k,v in attrs:
+                      if k=='href' and v:
+                          u=urljoin(base,v)
+                          p=urlparse(u)
+                          if p.scheme=='https' and p.hostname=='concesiones.mop.gob.cl' and p.path.lower().endswith('.pdf') and '/2026/' in p.path:
+                              self.urls.add(u)
+          p=Links()
+          p.feed(pathlib.Path('official/index.html').read_text())
+          p.urls.update(['https://concesiones.mop.gob.cl/uploads/sites/4/2026/03/AUTOPISTA-CENTRAL.pdf','https://concesiones.mop.gob.cl/uploads/sites/4/2026/01/VESPUCIO-SUR.pdf','https://concesiones.mop.gob.cl/uploads/sites/4/2026/01/ACCESO-VIAL.pdf'])
+          records=[]
+          for i,u in enumerate(sorted(p.urls)):
+              with urllib.request.urlopen(u,timeout=60) as r:
+                  if urlparse(r.geturl()).hostname!='concesiones.mop.gob.cl': raise ValueError('Unexpected redirect')
+                  data=r.read(25000001)
+              if not data.startswith(b'%PDF-') or len(data)>25000000: raise ValueError(u)
+              name=f'{i:03d}.pdf'
+              pathlib.Path('official',name).write_bytes(data)
+              records.append(dict(file=name,url=u,sha256=hashlib.sha256(data).hexdigest(),review_status='pending'))
+          pathlib.Path('official/manifest.json').write_text(json.dumps(records,indent=2))
+          print('PDFs:',len(records))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FDK-official-tariffs-review
+          path: official/
+          retention-days: 30
+          if-no-files-found: error
