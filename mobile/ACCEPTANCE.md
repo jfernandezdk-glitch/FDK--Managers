@@ -66,3 +66,7 @@ En Camiones seleccionar vehículo una sola vez y mantener selección al navegar 
 
 ### Guardado y edición explícitos de camiones
 Nuevo vehículo: formulario con botón grande GUARDAR CAMIÓN. Vehículo existente: consulta de solo lectura por defecto, botón EDITAR CAMIÓN para propietario, GUARDAR CAMBIOS y CANCELAR. Confirmar éxito únicamente tras persistencia y recuperación del registro; conservar formulario ante error, impedir doble envío, advertir cambios sin guardar. Mantener selección y pestaña al guardar. Validar patente única y campos numéricos; cambios de ejes no recalculan históricos. Implementación y pruebas pendientes.
+
+
+### Prioridad TAG aclarada por el propietario
+La prioridad es la cobertura y funcionamiento correcto de todas las autopistas y concesionarias TAG de Chile disponibles en las fuentes oficiales, no la implementación preferente de Radial Nororiente. Esta última es un caso de prueba frecuente por uso operativo. Aplicar las mismas exigencias de validación cartográfica, tarifaria, categorías, sentidos, horarios, túneles y vigencias a todas las concesiones. No declarar cobertura completa mientras existan fuentes o cruces pendientes de validar. Esta aclaración prevalece sobre prioridades de concesiones anteriores.
