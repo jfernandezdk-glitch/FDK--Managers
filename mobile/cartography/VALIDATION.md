@@ -8,3 +8,6 @@ Source artifact FDK-cartography-candidates, OSM replication 4986, 2026-11-26T21:
 - Run rollback-contained integration tests for forward/reverse crossings, parallel roads, multiple gantries, duplicates, delayed GPS, tunnel ambiguity, missing tariff, permissions and reconciliation.
 - Version candidate catalog separately; no production activation until verification. Preserve historical crossings and prior active catalog.
 - No APK release on the basis of this audit alone. Official cross-check and database integration tests remain pending.
+
+## First production pilot: Acceso Nororiente (owner approved)
+Prioritize Ruta 77 before other concessions. Require verified sector/direction, tunnel topology, official peak calendar and axle category mapping. Test east/west, both axle categories, peak boundaries, holidays, surface alternatives and duplicate events. Do not assume a round trip crosses only two charging points. Keep production disabled until end-to-end checks pass.
