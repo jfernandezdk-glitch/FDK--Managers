@@ -46,6 +46,53 @@ jobs:
           print(dict(counts))
           PY
           printf '%s\n' 'OpenStreetMap contributors — ODbL https://www.openstreetmap.org/copyright' 'Source: https://download.geofabrik.de/south-america/chile.html' 'Candidate data only; not verified for billing. No database publication.' > catalog/README.txt
+      - name: Cross-reference official MOP geography
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request, urllib.parse, math, collections
+          base='https://rest-sit.mop.gob.cl/arcgis/rest/services/CCOP/'
+          sources=['INFRA_DGC/MapServer/3','ELEMENTOS/MapServer/9','PuntosPeajes/MapServer/0']
+          points=[]
+          def query(layer,params):
+              url=base+layer+'/query?'+urllib.parse.urlencode(dict(params,f='json'))
+              with urllib.request.urlopen(url,timeout=90) as f: data=json.load(f)
+              if 'error' in data: raise RuntimeError(str(data['error']))
+              return data
+          for layer in sources:
+              ids=query(layer,{'where':'1=1','returnIdsOnly':'true'}).get('objectIds')
+              if not ids: raise RuntimeError('Empty source: '+layer)
+              rows=[]
+              for i in range(0,len(ids),100):
+                  data=query(layer,{'objectIds':','.join(map(str,ids[i:i+100])),'outFields':'*','outSR':4326,'returnGeometry':'true'})
+                  if data.get('exceededTransferLimit'): raise RuntimeError('Truncated source')
+                  rows.extend(data['features'])
+              with open('catalog/mop-'+layer.split('/')[0]+'.json','w') as f: json.dump(rows,f,ensure_ascii=False)
+              for row in rows:
+                  g=row.get('geometry') or {}
+                  if isinstance(g.get('x'),(int,float)) and isinstance(g.get('y'),(int,float)) and -76<g['x']<-65 and -57<g['y']<-17:
+                      points.append((layer,g['x'],g['y'],row['attributes']))
+          def distance(x,y,a,b):
+              p,q=math.radians(y),math.radians(b)
+              h=math.sin((q-p)/2)**2+math.cos(p)*math.cos(q)*math.sin(math.radians(a-x)/2)**2
+              return 12742000*math.asin(min(1,math.sqrt(h)))
+          counts=collections.Counter()
+          with open('catalog/features.geojsonseq') as src,open('catalog/mop-matches.jsonl','w') as dst:
+              for line in src:
+                  obj=json.loads(line.lstrip(chr(30))); p=obj.get('properties',{}); g=obj.get('geometry') or {}
+                  if not (p.get('barrier') in ('toll_booth','toll_gantry') or p.get('highway')=='toll_gantry') or g.get('type')!='Point': continue
+                  x,y=g['coordinates'][:2]
+                  matches=[]
+                  for layer,a,b,attrs in points:
+                      d=distance(x,y,a,b)
+                      if d<=250: matches.append({'source':layer,'distance_m':round(d,2),'coordinates':[a,b],'attributes':attrs})
+                  matches.sort(key=lambda m:m['distance_m'])
+                  state='nearby_candidates' if matches else 'unmatched'
+                  counts[state]+=1
+                  if not p.get('name'): counts['unnamed_'+state]+=1
+                  dst.write(json.dumps({'osm_id':obj.get('id'),'coordinates':[x,y],'osm':p,'match_status':state,'review_status':'pending','matches':matches},ensure_ascii=False)+'\n')
+          with open('catalog/mop-match-summary.json','w') as f: json.dump(dict(counts),f,indent=2)
+          print(dict(counts))
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: FDK-cartography-candidates
