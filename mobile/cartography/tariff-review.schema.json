@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "osm_id",
+    "mop_source",
+    "concession_source",
+    "concession",
+    "code",
+    "direction",
+    "valid_from",
+    "vehicle_category",
+    "billing_mode",
+    "review_status"
+  ],
+  "properties": {
+    "osm_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mop_source": {
+      "type": "string",
+      "format": "uri"
+    },
+    "concession_source": {
+      "type": "string",
+      "format": "uri"
+    },
+    "concession": {
+      "type": "string",
+      "minLength": 1
+    },
+    "code": {
+      "type": "string",
+      "minLength": 1
+    },
+    "direction": {
+      "type": "string",
+      "minLength": 1
+    },
+    "valid_from": {
+      "type": "string",
+      "format": "date"
+    },
+    "vehicle_category": {
+      "type": "string",
+      "minLength": 1
+    },
+    "billing_mode": {
+      "enum": [
+        "gantry",
+        "entry_exit"
+      ]
+    },
+    "review_status": {
+      "const": "pending"
+    },
+    "tariffs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "day_of_week",
+          "start_time",
+          "end_time",
+          "amount_clp"
+        ],
+        "properties": {
+          "day_of_week": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 6
+          },
+          "start_time": {
+            "type": "string"
+          },
+          "end_time": {
+            "type": "string"
+          },
+          "amount_clp": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}
