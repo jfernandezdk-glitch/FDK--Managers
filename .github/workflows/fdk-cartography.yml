@@ -234,7 +234,44 @@ jobs:
               for k,v in counts.items(): f.write(f'- {k}: {v}\n')
               f.write('\nRaw monetary tokens only; category, direction, time, validity and amounts require table-specific validation. No database writes.\n')
           PY
-      - uses: actions/upload-artifact@v4
+      - name: Classify tariff row context
+        run: |
+          python3 - <<'PY'
+          import json,re,unicodedata,collections,pathlib,os
+          def norm(s):
+              return unicodedata.normalize('NFKD',s).encode('ascii','ignore').decode().lower()
+          patterns={
+              'axles':r'\b(?:ejes?|axles?)\b',
+              'vehicle_category':r'\b(?:camiones?|buses?|vehiculos?|categorias?|remolques?)\b',
+              'peak':r'\b(?:punta|saturacion|valle|fuera de punta)\b',
+              'schedule':r'\b\d{1,2}:\d{2}\b',
+              'direction':r'\b(?:sentido|oriente|poniente|norte|sur|direccion)\b',
+              'calendar':r'\b(?:festivos?|feriados?|lunes|viernes|sabados?|domingos?|habiles)\b',
+              'validity':r'\b(?:vigencia|vigente|rige|2026)\b',
+              'entry_exit':r'\b(?:entrada|salida|acceso)\b'
+          }
+          counts=collections.Counter()
+          perdoc=collections.defaultdict(collections.Counter)
+          with open('catalog/price-row-candidates.jsonl') as src,open('catalog/classified-price-candidates.jsonl','w') as dst:
+              for line in src:
+                  row=json.loads(line)
+                  context=norm(' '.join(row['context']))
+                  flags=[k for k,p in patterns.items() if re.search(p,context)]
+                  counts['rows']+=1
+                  perdoc[row['file']]['rows']+=1
+                  for k in flags:
+                      counts[k]+=1
+                      perdoc[row['file']][k]+=1
+                  row.update(context_flags=flags,classification_status='context_only',vehicle_category=None,axle_min=None,axle_max=None,direction=None,valid_from=None,valid_until=None,amount_clp=None,billing_eligible=False)
+                  dst.write(json.dumps(row,ensure_ascii=False)+'\n')
+          pathlib.Path('catalog/classification-summary.json').write_text(json.dumps(dict(counts),indent=2))
+          pathlib.Path('catalog/classification-by-document.json').write_text(json.dumps(perdoc,indent=2))
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write('\n## TAG tariff context classification\n\n| Context evidence | Rows |\n|---|---:|\n')
+              for k,v in sorted(counts.items()): f.write(f'| {k} | {v} |\n')
+              f.write('\nFlags overlap and are not assigned tariff rules. All amounts remain pending table-specific parsing.\n')
+          PY
+      - uses: actions/upload-artifact@v6
         with:
           name: FDK-cartography-candidates
           path: |
